@@ -137,6 +137,31 @@ footer{max-width:1100px;margin:0 auto;padding:0 20px 40px;color:var(--muted);
 .views a:hover{border-color:var(--amber);color:var(--ink)}
 .views a.active{background:var(--red);border-color:var(--red);color:#fff}
 
+/* ---------- dodawanie filmu ---------- */
+.sec-head .add-film{margin-left:auto;font-size:12px;padding:6px 12px}
+.sec-head .add-film:hover{border-color:var(--amber);color:var(--amber)}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:12px;padding:22px 24px;width:min(440px,92vw);
+  box-shadow:0 18px 60px rgba(0,0,0,.6)}
+dialog::backdrop{background:rgba(10,8,6,.7);backdrop-filter:blur(2px)}
+dialog h3{font-family:var(--display);letter-spacing:.05em;color:var(--amber);
+  font-size:22px;margin-bottom:16px;text-transform:uppercase}
+dialog label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  color:var(--muted);text-transform:uppercase;margin-bottom:12px}
+dialog input,dialog select{display:block;width:100%;margin-top:5px;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:6px;
+  color:var(--ink);padding:9px 10px;font-size:14px;font-family:var(--body)}
+dialog input:focus,dialog select:focus{border-color:var(--amber);outline:none}
+dialog small{display:block;margin-top:4px;color:var(--muted);font-family:var(--body);
+  font-size:11px;text-transform:none;letter-spacing:0}
+.af-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.af-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+.btn.primary{background:var(--amber);color:#1A1208;border-color:var(--amber);font-weight:700}
+.btn.primary:hover{filter:brightness(1.1)}
+.t-del{background:none;border:none;color:var(--muted);font-size:11px;
+  font-family:var(--mono);text-decoration:underline;padding:0}
+.t-del:hover{color:var(--red)}
+
 /* ---------- ranking ---------- */
 .rank-list{display:flex;flex-direction:column;gap:10px}
 .rank-row{display:flex;align-items:center;gap:14px;background:var(--panel);
@@ -237,6 +262,7 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
     <div class="sec-head">
       <h2 class="rest">Reszta</h2>
       <span class="count" id="restCount"></span>
+      <button class="btn add-film" id="addFilmBtn">＋ Dodaj film</button>
     </div>
     <div class="grid" id="restList"></div>
     <div class="empty" id="restEmpty" hidden>Brak filmów w danych dla tego miesiąca.</div>
@@ -253,6 +279,34 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
     <div class="empty" id="rankEmpty" hidden>Jeszcze nic nie obejrzane — ranking czeka na pierwszy seans.</div>
   </section>
 </main>
+
+<dialog id="addDialog">
+  <form method="dialog" id="addForm">
+    <h3>Dodaj film ręcznie</h3>
+    <label>Tytuł *
+      <input type="text" id="afTitle" required placeholder="np. Diuna: Część trzecia">
+    </label>
+    <label>Link do Filmwebu
+      <input type="url" id="afLink" placeholder="https://www.filmweb.pl/film/...">
+    </label>
+    <label>Adres plakatu (URL obrazka)
+      <input type="url" id="afPoster" placeholder="https://fwcdn.pl/fpo/...jpg">
+      <small>Na Filmwebie: prawy przycisk na plakacie → „Kopiuj adres obrazu"</small>
+    </label>
+    <div class="af-row">
+      <label>Miesiąc
+        <select id="afMonth"></select>
+      </label>
+      <label>Długość (min)
+        <input type="number" id="afLength" min="1" max="500" placeholder="120">
+      </label>
+    </div>
+    <div class="af-actions">
+      <button type="button" class="btn" id="afCancel">Anuluj</button>
+      <button type="submit" class="btn primary" id="afSave">Dodaj film</button>
+    </div>
+  </form>
+</dialog>
 
 <footer>
   Oceny i statusy zapisują się lokalnie w tej przeglądarce (localStorage).<br>
@@ -277,13 +331,32 @@ function loadState(){
 function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
 function fs(id){ return state[id] || (state[id] = {watched:false, want:false, kar:null, adam:null, ads:null}); }
 
+/* ręcznie dodane filmy: { "2026-06": [ {id,title,poster,link,length,manual:true,...} ] } */
+const MANUAL_KEY = "cc-seans-manual-v1";
+let manual = loadManual();
+function loadManual(){
+  try{ return JSON.parse(localStorage.getItem(MANUAL_KEY)) || {}; }
+  catch(e){ return {}; }
+}
+function saveManual(){ localStorage.setItem(MANUAL_KEY, JSON.stringify(manual)); }
+
+/* filmy z API + ręczne dla danego miesiąca */
+function monthFilms(m){
+  const out = Object.assign({}, DB.months[m]?.films ?? {});
+  for(const f of (manual[m] ?? [])) out[f.id] = f;
+  return out;
+}
+function allMonthKeys(){
+  return [...new Set([...Object.keys(DB.months), ...Object.keys(manual)])];
+}
+
 /* ---------- helpers ---------- */
 function monthRange(){
   // od START_MONTH do max(bieżący miesiąc, miesiące w danych)
   const out = [];
   const now = new Date();
   let end = now.getFullYear()*12 + now.getMonth();
-  for(const m of Object.keys(DB.months)){
+  for(const m of allMonthKeys()){
     const [y,mo] = m.split("-").map(Number);
     end = Math.max(end, y*12 + (mo-1));
   }
@@ -322,8 +395,7 @@ function renderMonths(){
   const nav = document.getElementById("months");
   nav.innerHTML = "";
   for(const m of monthRange()){
-    const films = DB.months[m]?.films ?? {};
-    const n = Object.keys(films).length;
+    const n = Object.keys(monthFilms(m)).length;
     const b = document.createElement("button");
     b.innerHTML = `${esc(monthLabel(m))} <span class="cnt">(${n})</span>`;
     b.className = m === currentMonth ? "active" : "";
@@ -366,6 +438,7 @@ function ticketHTML(film, st, showShows){
         ${film.length?`<span>${film.length} min</span>`:""}
         ${film.year?`<span>${esc(film.year)}</span>`:""}
         <span class="cin">${(film.cinemas||[]).map(c=>esc(c.replace("Poznań ",""))).join(" · ")}</span>
+        ${film.manual?`<button class="t-del" data-act="del" title="Usuń ręcznie dodany film">usuń</button>`:""}
       </div>
       ${st.watched ? `
       <div class="rates">
@@ -404,7 +477,7 @@ function sortFilms(arr, mode){
 
 function render(){
   renderMonths();
-  const films = Object.values(DB.months[currentMonth]?.films ?? {});
+  const films = Object.values(monthFilms(currentMonth));
   const mode = document.getElementById("sort").value;
   const showShows = isCurrentMonth(currentMonth);
 
@@ -432,8 +505,8 @@ function render(){
 function renderRanking(){
   // dedupe po id — ten sam film w kilku miesiącach = jeden wpis
   const byId = new Map();
-  for(const [m, month] of Object.entries(DB.months)){
-    for(const f of Object.values(month.films ?? {})){
+  for(const m of allMonthKeys()){
+    for(const f of Object.values(monthFilms(m))){
       if(!fs(f.id).watched) continue;
       if(!byId.has(f.id)) byId.set(f.id, {film:f, months:[]});
       byId.get(f.id).months.push(m);
@@ -498,21 +571,54 @@ document.querySelector("main").addEventListener("click", e=>{
   const id = btn.closest(".ticket").dataset.id;
   if(btn.dataset.act === "toggle") fs(id).watched = !fs(id).watched;
   if(btn.dataset.act === "want")   fs(id).want = !fs(id).want;
+  if(btn.dataset.act === "del"){
+    if(!confirm("Usunąć ten ręcznie dodany film?")) return;
+    for(const m of Object.keys(manual)){
+      manual[m] = manual[m].filter(f=>f.id!==id);
+      if(!manual[m].length) delete manual[m];
+    }
+    delete state[id];
+    saveManual();
+  }
   saveState(); render();
 });
-document.querySelector("main").addEventListener("change", e=>{
-  const inp = e.target.closest("input[data-field]");
-  if(!inp) return;
-  const id = inp.closest(".ticket").dataset.id;
-  const v = inp.value === "" ? null : Number(inp.value);
-  fs(id)[inp.dataset.field] = (v===null || isNaN(v)) ? null : v;
-  saveState(); render();
-});
-document.getElementById("sort").addEventListener("change", render);
 
-/* eksport / import ocen */
+/* ---------- dodawanie filmu ręcznie ---------- */
+const addDialog = document.getElementById("addDialog");
+document.getElementById("addFilmBtn").onclick = ()=>{
+  const sel = document.getElementById("afMonth");
+  sel.innerHTML = monthRange().map(m=>
+    `<option value="${m}" ${m===currentMonth?"selected":""}>${esc(monthLabel(m))}</option>`).join("");
+  document.getElementById("addForm").reset();
+  addDialog.showModal();
+};
+document.getElementById("afCancel").onclick = ()=>addDialog.close();
+document.getElementById("addForm").addEventListener("submit", e=>{
+  const title = document.getElementById("afTitle").value.trim();
+  if(!title){ e.preventDefault(); return; }
+  const m = document.getElementById("afMonth").value;
+  const len = document.getElementById("afLength").value;
+  const film = {
+    id: "man-" + Date.now(),
+    title,
+    poster: document.getElementById("afPoster").value.trim() || null,
+    link: document.getElementById("afLink").value.trim() || null,
+    length: len ? Number(len) : null,
+    year: m.slice(0,4),
+    cinemas: [],
+    firstSeen: m + "-01",
+    manual: true,
+  };
+  (manual[m] ??= []).push(film);
+  saveManual();
+  currentMonth = m;
+  render();
+});
+
+/* eksport / import (oceny + filmy ręczne) */
 document.getElementById("export").onclick = ()=>{
-  const blob = new Blob([JSON.stringify(state,null,1)],{type:"application/json"});
+  const payload = {version:2, ratings:state, manual:manual};
+  const blob = new Blob([JSON.stringify(payload,null,1)],{type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `seans-oceny-${new Date().toISOString().slice(0,10)}.json`;
@@ -523,11 +629,31 @@ document.getElementById("importFile").addEventListener("change", async e=>{
   const f = e.target.files[0]; if(!f) return;
   try{
     const data = JSON.parse(await f.text());
-    state = Object.assign({}, state, data);
+    if(data && data.version === 2){
+      state = Object.assign({}, state, data.ratings || {});
+      for(const [m, list] of Object.entries(data.manual || {})){
+        manual[m] ??= [];
+        for(const film of list){
+          if(!manual[m].some(x=>x.id===film.id)) manual[m].push(film);
+        }
+      }
+      saveManual();
+    }else{
+      state = Object.assign({}, state, data); // stary format: same oceny
+    }
     saveState(); render();
   }catch(err){ alert("Nie udało się wczytać pliku: " + err.message); }
   e.target.value = "";
 });
+document.querySelector("main").addEventListener("change", e=>{
+  const inp = e.target.closest("input[data-field]");
+  if(!inp) return;
+  const id = inp.closest(".ticket").dataset.id;
+  const v = inp.value === "" ? null : Number(inp.value);
+  fs(id)[inp.dataset.field] = (v===null || isNaN(v)) ? null : v;
+  saveState(); render();
+});
+document.getElementById("sort").addEventListener("change", render);
 
 /* ---------- init ---------- */
 (async function init(){
