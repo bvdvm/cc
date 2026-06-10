@@ -1,0 +1,35 @@
+{
+ "months": {
+  "2026-06": {
+   "films": {
+    "demo-1": {
+     "id": "demo-1",
+     "title": "Przykładowy film (dane pojawią się po pierwszym uruchomieniu Action)",
+     "poster": null,
+     "link": null,
+     "length": 120,
+     "year": "2026",
+     "cinemas": ["Poznań Plaza"],
+     "firstSeen": "2026-06-01"
+    },
+    "demo-2": {
+     "id": "demo-2",
+     "title": "Drugi przykładowy film",
+     "poster": null,
+     "link": null,
+     "length": 95,
+     "year": "2026",
+     "cinemas": ["Poznań Kinepolis"],
+     "firstSeen": "2026-06-05"
+    }
+   }
+  }
+ },
+ "showtimes": {
+  "demo-1": [
+   {"dt": "2026-06-12T18:30:00", "cinema": "Poznań Plaza", "attrs": ["imax"]},
+   {"dt": "2026-06-13T20:00:00", "cinema": "Poznań Kinepolis", "attrs": []}
+  ]
+ },
+ "updated": null
+}
