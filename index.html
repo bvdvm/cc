@@ -60,7 +60,11 @@ section{margin-top:34px}
 .sec-head{display:flex;align-items:baseline;gap:14px;border-bottom:2px solid var(--line);
   padding-bottom:8px;margin-bottom:18px}
 .sec-head h2{font-family:var(--display);font-size:26px;letter-spacing:.05em;text-transform:uppercase}
-.sec-head h2.seen{color:var(--ok)} .sec-head h2.todo{color:var(--red)}
+.sec-head h2.seen{color:var(--ok)} .sec-head h2.want{color:var(--amber)} .sec-head h2.rest{color:var(--muted)}
+.toggle button[data-act=want]{flex:1}
+.toggle button[data-act=want]:hover{border-color:var(--amber);color:var(--amber)}
+.ticket.wanted .toggle button[data-act=want]{background:rgba(242,163,60,.12);border-color:var(--amber);color:var(--amber)}
+.toggle button[data-act=toggle]{flex:1}
 .sec-head .count{font-family:var(--mono);color:var(--muted);font-size:13px}
 .empty{color:var(--muted);font-size:14px;padding:18px 4px;font-style:italic}
 
@@ -108,7 +112,7 @@ section{margin-top:34px}
 /* watched toggle */
 .toggle{display:flex;align-items:center;gap:8px;margin-top:2px}
 .toggle button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
-  border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;width:100%;transition:.15s}
+  border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;flex:1;transition:.15s}
 .toggle button:hover{border-color:var(--ok);color:var(--ok)}
 .ticket.watched .toggle button{background:rgba(127,176,105,.12);border-color:var(--ok);color:var(--ok)}
 
@@ -222,11 +226,20 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
 
   <section>
     <div class="sec-head">
-      <h2 class="todo">Do obejrzenia</h2>
+      <h2 class="want">Do obejrzenia</h2>
       <span class="count" id="todoCount"></span>
     </div>
     <div class="grid" id="todoList"></div>
-    <div class="empty" id="todoEmpty" hidden>Brak filmów w danych dla tego miesiąca.</div>
+    <div class="empty" id="todoEmpty" hidden>Nic nie wybrane — klikaj ☆ przy filmach w sekcji „Reszta", żeby trafiły tutaj.</div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2 class="rest">Reszta</h2>
+      <span class="count" id="restCount"></span>
+    </div>
+    <div class="grid" id="restList"></div>
+    <div class="empty" id="restEmpty" hidden>Brak filmów w danych dla tego miesiąca.</div>
   </section>
 </main>
 
@@ -262,7 +275,7 @@ function loadState(){
   catch(e){ return {}; }
 }
 function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
-function fs(id){ return state[id] || (state[id] = {watched:false, kar:null, adam:null, ads:null}); }
+function fs(id){ return state[id] || (state[id] = {watched:false, want:false, kar:null, adam:null, ads:null}); }
 
 /* ---------- helpers ---------- */
 function monthRange(){
@@ -343,7 +356,7 @@ function ticketHTML(film, st, showShows){
   }
 
   return `
-  <article class="ticket ${st.watched?"watched":""}" data-id="${esc(film.id)}">
+  <article class="ticket ${st.watched?"watched":""} ${st.want&&!st.watched?"wanted":""}" data-id="${esc(film.id)}">
     <div class="poster">${poster}</div>
     <div class="perf"></div>
     <div class="t-body">
@@ -370,6 +383,7 @@ function ticketHTML(film, st, showShows){
       </div>` : ""}
       <div class="toggle">
         <button data-act="toggle">${st.watched ? "✓ Obejrzane" : "Oznacz jako obejrzane"}</button>
+        ${!st.watched ? `<button data-act="want">${st.want ? "★ Na liście" : "☆ Do obejrzenia"}</button>` : ""}
       </div>
       ${shows}
     </div>
@@ -395,18 +409,23 @@ function render(){
   const showShows = isCurrentMonth(currentMonth);
 
   const watched = sortFilms(films.filter(f=>fs(f.id).watched), mode);
-  const todo    = sortFilms(films.filter(f=>!fs(f.id).watched),
-                            mode.startsWith("avg")||mode.startsWith("ads") ? "title" : mode);
+  const fallback = mode.startsWith("avg")||mode.startsWith("ads") ? "title" : mode;
+  const want = sortFilms(films.filter(f=>!fs(f.id).watched && fs(f.id).want), fallback);
+  const rest = sortFilms(films.filter(f=>!fs(f.id).watched && !fs(f.id).want), fallback);
 
   document.getElementById("watchedList").innerHTML =
     watched.map(f=>ticketHTML(f, fs(f.id), false)).join("");
   document.getElementById("todoList").innerHTML =
-    todo.map(f=>ticketHTML(f, fs(f.id), showShows)).join("");
+    want.map(f=>ticketHTML(f, fs(f.id), showShows)).join("");
+  document.getElementById("restList").innerHTML =
+    rest.map(f=>ticketHTML(f, fs(f.id), showShows)).join("");
 
   document.getElementById("watchedEmpty").hidden = watched.length>0;
-  document.getElementById("todoEmpty").hidden = todo.length>0;
+  document.getElementById("todoEmpty").hidden = want.length>0;
+  document.getElementById("restEmpty").hidden = rest.length>0;
   document.getElementById("watchedCount").textContent = `${watched.length} z ${films.length}`;
-  document.getElementById("todoCount").textContent = `${todo.length}`;
+  document.getElementById("todoCount").textContent = `${want.length}`;
+  document.getElementById("restCount").textContent = `${rest.length}`;
 }
 
 /* ---------- ranking (wszystkie miesiące) ---------- */
@@ -474,10 +493,11 @@ window.addEventListener("hashchange", setView);
 
 /* ---------- events (delegacja) ---------- */
 document.querySelector("main").addEventListener("click", e=>{
-  const btn = e.target.closest("[data-act=toggle]");
+  const btn = e.target.closest("button[data-act]");
   if(!btn) return;
   const id = btn.closest(".ticket").dataset.id;
-  fs(id).watched = !fs(id).watched;
+  if(btn.dataset.act === "toggle") fs(id).watched = !fs(id).watched;
+  if(btn.dataset.act === "want")   fs(id).want = !fs(id).want;
   saveState(); render();
 });
 document.querySelector("main").addEventListener("change", e=>{
