@@ -7,202 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;700&display=swap&subset=latin-ext" rel="stylesheet">
-<style>
-:root{
-  --bg:#100D0B; --panel:#1B1714; --panel-2:#231D18;
-  --amber:#F2A33C; --red:#C8333B; --ink:#EDE4D3; --muted:#8A7E6E;
-  --line:#352C24; --ok:#7FB069;
-  --display:'Anton',sans-serif; --body:'Inter',sans-serif; --mono:'IBM Plex Mono',monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{scrollbar-color:var(--line) var(--bg)}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;
-  background-image:radial-gradient(ellipse 80% 50% at 50% -10%, rgba(242,163,60,.07), transparent)}
-a{color:var(--amber)}
-button{font-family:inherit;cursor:pointer}
-
-/* ---------- header / marquee ---------- */
-header{max-width:1100px;margin:0 auto;padding:36px 20px 8px;text-align:center}
-.marquee{display:inline-block;border:3px solid var(--amber);border-radius:10px;
-  padding:14px 34px 10px;position:relative;
-  box-shadow:0 0 0 3px var(--bg), 0 0 0 4px var(--line), 0 0 40px rgba(242,163,60,.12)}
-.marquee::before,.marquee::after{content:"";position:absolute;top:-7px;width:10px;height:10px;
-  border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber)}
-.marquee::before{left:18px}.marquee::after{right:18px}
-.marquee h1{font-family:var(--display);font-size:clamp(34px,6vw,56px);letter-spacing:.06em;
-  line-height:1;color:var(--amber);text-shadow:0 0 22px rgba(242,163,60,.35)}
-.marquee .sub{font-family:var(--mono);font-size:12px;letter-spacing:.28em;color:var(--muted);
-  text-transform:uppercase;margin-top:6px}
-.updated{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:12px}
-
-/* ---------- month strip ---------- */
-.months{max-width:1100px;margin:22px auto 0;padding:0 20px;display:flex;gap:6px;
-  overflow-x:auto;scrollbar-width:thin}
-.months button{flex:0 0 auto;background:var(--panel);border:1px solid var(--line);
-  color:var(--muted);padding:9px 16px;border-radius:6px;font-family:var(--mono);
-  font-size:13px;font-weight:700;letter-spacing:.04em;transition:.15s}
-.months button:hover{border-color:var(--amber);color:var(--ink)}
-.months button.active{background:var(--amber);color:#1A1208;border-color:var(--amber)}
-.months button .cnt{opacity:.65;font-weight:500}
-
-/* ---------- toolbar ---------- */
-.toolbar{max-width:1100px;margin:18px auto 0;padding:0 20px;display:flex;flex-wrap:wrap;
-  gap:10px;align-items:center;justify-content:space-between}
-.toolbar .left,.toolbar .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-select,.btn{background:var(--panel);border:1px solid var(--line);color:var(--ink);
-  padding:8px 12px;border-radius:6px;font-size:13px;font-family:var(--body)}
-.btn:hover{border-color:var(--amber)}
-label.tl{font-size:12px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em}
-
-/* ---------- sections ---------- */
-main{max-width:1100px;margin:0 auto;padding:10px 20px 80px}
-section{margin-top:34px}
-.sec-head{display:flex;align-items:baseline;gap:14px;border-bottom:2px solid var(--line);
-  padding-bottom:8px;margin-bottom:18px}
-.sec-head h2{font-family:var(--display);font-size:26px;letter-spacing:.05em;text-transform:uppercase}
-.sec-head h2.seen{color:var(--ok)} .sec-head h2.want{color:var(--amber)} .sec-head h2.rest{color:var(--muted)}
-.toggle button[data-act=want]{flex:1}
-.toggle button[data-act=want]:hover{border-color:var(--amber);color:var(--amber)}
-.ticket.wanted .toggle button[data-act=want]{background:rgba(242,163,60,.12);border-color:var(--amber);color:var(--amber)}
-.toggle button[data-act=toggle]{flex:1}
-.sec-head .count{font-family:var(--mono);color:var(--muted);font-size:13px}
-.empty{color:var(--muted);font-size:14px;padding:18px 4px;font-style:italic}
-
-/* ---------- ticket card ---------- */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}
-.ticket{background:var(--panel);border:1px solid var(--line);border-radius:10px;
-  display:flex;overflow:hidden;position:relative;transition:transform .15s, box-shadow .15s}
-.ticket:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.45)}
-.poster{flex:0 0 104px;background:var(--panel-2);position:relative}
-.poster img{width:100%;height:100%;object-fit:cover;display:block}
-.poster .ph{display:flex;align-items:center;justify-content:center;height:100%;
-  font-size:34px;color:var(--line)}
-/* perforation between poster and body */
-.perf{flex:0 0 0;border-left:2px dashed var(--line);position:relative}
-.perf::before,.perf::after{content:"";position:absolute;left:-7px;width:12px;height:12px;
-  border-radius:50%;background:var(--bg)}
-.perf::before{top:-6px}.perf::after{bottom:-6px}
-.t-body{flex:1;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
-.t-title{font-weight:700;font-size:15px;line-height:1.25}
-.t-title a{color:var(--ink);text-decoration:none}
-.t-title a:hover{color:var(--amber)}
-.t-meta{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;
-  flex-wrap:wrap;gap:4px 10px}
-.t-meta .cin{color:var(--amber)}
-
-/* rating stamp */
-.stamp{position:absolute;top:10px;right:10px;width:46px;height:46px;border-radius:50%;
-  border:2px solid var(--amber);display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-weight:700;font-size:15px;color:var(--amber);
-  background:rgba(16,13,11,.78);transform:rotate(8deg);
-  box-shadow:0 0 12px rgba(242,163,60,.18)}
-.stamp.none{border-color:var(--line);color:var(--line)}
-
-/* rating inputs */
-.rates{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:auto}
-.rate{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
-.rate .who{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);
-  text-transform:uppercase;display:block;margin-bottom:2px}
-.rate input{width:100%;background:transparent;border:none;color:var(--ink);
-  font-family:var(--mono);font-size:15px;font-weight:700;outline:none}
-.rate input::placeholder{color:var(--line)}
-.rate input:focus{color:var(--amber)}
-.rate.ads .who{color:var(--red)}
-
-/* watched toggle */
-.toggle{display:flex;align-items:center;gap:8px;margin-top:2px}
-.toggle button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
-  border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;flex:1;transition:.15s}
-.toggle button:hover{border-color:var(--ok);color:var(--ok)}
-.ticket.watched .toggle button{background:rgba(127,176,105,.12);border-color:var(--ok);color:var(--ok)}
-
-/* showtimes */
-.shows{border-top:1px dashed var(--line);margin-top:6px;padding-top:8px}
-.shows .sh-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;
-  color:var(--amber);text-transform:uppercase;margin-bottom:5px}
-.shows ul{list-style:none;display:flex;flex-direction:column;gap:3px}
-.shows li{font-family:var(--mono);font-size:11.5px;color:var(--ink);display:flex;gap:8px}
-.shows li .when{color:var(--amber);min-width:88px}
-.shows li .tag{background:var(--red);color:#fff;border-radius:3px;font-size:9px;
-  padding:1px 5px;text-transform:uppercase;align-self:center}
-
-footer{max-width:1100px;margin:0 auto;padding:0 20px 40px;color:var(--muted);
-  font-size:12px;font-family:var(--mono);text-align:center}
-
-/* ---------- view tabs ---------- */
-.views{display:flex;justify-content:center;gap:8px;margin-top:18px}
-.views a{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.08em;
-  text-transform:uppercase;text-decoration:none;color:var(--muted);
-  border:1px solid var(--line);border-radius:6px;padding:8px 18px;background:var(--panel);transition:.15s}
-.views a:hover{border-color:var(--amber);color:var(--ink)}
-.views a.active{background:var(--red);border-color:var(--red);color:#fff}
-
-/* ---------- dodawanie filmu ---------- */
-.sec-head .add-film{margin-left:auto;font-size:12px;padding:6px 12px}
-.sec-head .add-film:hover{border-color:var(--amber);color:var(--amber)}
-dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);
-  border-radius:12px;padding:22px 24px;width:min(440px,92vw);
-  box-shadow:0 18px 60px rgba(0,0,0,.6)}
-dialog::backdrop{background:rgba(10,8,6,.7);backdrop-filter:blur(2px)}
-dialog h3{font-family:var(--display);letter-spacing:.05em;color:var(--amber);
-  font-size:22px;margin-bottom:16px;text-transform:uppercase}
-dialog label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
-  color:var(--muted);text-transform:uppercase;margin-bottom:12px}
-dialog input,dialog select{display:block;width:100%;margin-top:5px;
-  background:var(--panel-2);border:1px solid var(--line);border-radius:6px;
-  color:var(--ink);padding:9px 10px;font-size:14px;font-family:var(--body)}
-dialog input:focus,dialog select:focus{border-color:var(--amber);outline:none}
-dialog small{display:block;margin-top:4px;color:var(--muted);font-family:var(--body);
-  font-size:11px;text-transform:none;letter-spacing:0}
-.af-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.af-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
-.btn.primary{background:var(--amber);color:#1A1208;border-color:var(--amber);font-weight:700}
-.btn.primary:hover{filter:brightness(1.1)}
-.t-del{background:none;border:none;color:var(--muted);font-size:11px;
-  font-family:var(--mono);text-decoration:underline;padding:0}
-.t-del:hover{color:var(--red)}
-
-/* ---------- ranking ---------- */
-.rank-list{display:flex;flex-direction:column;gap:10px}
-.rank-row{display:flex;align-items:center;gap:14px;background:var(--panel);
-  border:1px solid var(--line);border-radius:10px;padding:10px 16px 10px 10px}
-.rank-pos{font-family:var(--display);font-size:30px;color:var(--muted);
-  min-width:52px;text-align:center;line-height:1}
-.rank-row.p1 .rank-pos{color:var(--amber);text-shadow:0 0 14px rgba(242,163,60,.45)}
-.rank-row.p2 .rank-pos{color:#C9C2B4}
-.rank-row.p3 .rank-pos{color:#C77B4A}
-.rank-row.p1{border-color:var(--amber)}
-.rank-poster{flex:0 0 48px;height:68px;border-radius:5px;overflow:hidden;background:var(--panel-2)}
-.rank-poster img{width:100%;height:100%;object-fit:cover;display:block}
-.rank-poster .ph{display:flex;align-items:center;justify-content:center;height:100%;
-  font-size:20px;color:var(--line)}
-.rank-info{flex:1;min-width:0}
-.rank-title{font-weight:700;font-size:15px;line-height:1.25}
-.rank-meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:3px;
-  display:flex;flex-wrap:wrap;gap:4px 12px}
-.rank-scores{display:flex;align-items:center;gap:14px;font-family:var(--mono)}
-.rank-scores .pp{text-align:center}
-.rank-scores .pp .who{display:block;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
-.rank-scores .pp .val{font-size:15px;font-weight:700}
-.rank-avg{width:52px;height:52px;border-radius:50%;border:2px solid var(--amber);
-  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;
-  color:var(--amber);background:rgba(16,13,11,.6);flex:0 0 auto}
-.rank-row.unrated .rank-avg{border-color:var(--line);color:var(--line)}
-@media(max-width:560px){
-  .rank-scores .pp{display:none}
-  .rank-pos{min-width:36px;font-size:24px}
-}
-
-@media(max-width:480px){
-  .grid{grid-template-columns:1fr}
-  .rates{grid-template-columns:1fr 1fr 1fr}
-}
-@media(prefers-reduced-motion:reduce){
-  .ticket,.months button{transition:none}
-  .ticket:hover{transform:none}
-}
-input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -212,56 +17,47 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
     <div class="sub">Cinema City · Poznań Plaza &amp; Kinepolis</div>
   </div>
   <div class="updated" id="updated"></div>
-  <nav class="views" aria-label="Widok">
-    <a href="#" id="tabMonths" class="active">Miesiące</a>
-    <a href="#ranking" id="tabRanking">Ranking</a>
+  <nav class="tabs" id="tabs">
+    <a href="#" data-view="months">Miesiące</a>
+    <a href="#ranking" data-view="ranking">Ranking</a>
+    <a href="#top10" data-view="top10">Top 10</a>
+    <a href="#sagi" data-view="sagi">Sagi</a>
+    <a href="#seriale" data-view="seriale">Seriale</a>
+    <a href="#losuj" data-view="losuj">Losuj</a>
   </nav>
 </header>
 
 <nav class="months" id="months" aria-label="Wybór miesiąca"></nav>
 
-<div class="toolbar">
-  <div class="left">
-    <label class="tl" for="sort">SORTUJ:</label>
-    <select id="sort">
-      <option value="avg-desc">Średnia ocena ↓</option>
-      <option value="avg-asc">Średnia ocena ↑</option>
-      <option value="title">Tytuł A→Z</option>
-      <option value="ads-desc">Reklamy ↓</option>
-      <option value="ads-asc">Reklamy ↑</option>
-      <option value="seen">Data dodania</option>
-    </select>
-  </div>
-  <div class="right">
-    <button class="btn" id="export">Eksportuj oceny</button>
-    <button class="btn" id="import">Importuj oceny</button>
-    <input type="file" id="importFile" accept=".json" hidden>
-  </div>
+<div class="toolbar" id="toolbar">
+  <label class="tl" for="sort">SORTUJ:</label>
+  <select id="sort">
+    <option value="avg-desc">Średnia ocena ↓</option>
+    <option value="avg-asc">Średnia ocena ↑</option>
+    <option value="title">Tytuł A→Z</option>
+    <option value="ads-desc">Reklamy ↓</option>
+    <option value="ads-asc">Reklamy ↑</option>
+    <option value="seen">Data dodania</option>
+  </select>
 </div>
 
-<main id="monthlyMain">
+<!-- ============ WIDOK: MIESIĄCE ============ -->
+<main id="monthsMain">
   <section>
-    <div class="sec-head">
-      <h2 class="seen">Obejrzane</h2>
-      <span class="count" id="watchedCount"></span>
-    </div>
+    <div class="sec-head"><h2 class="seen">Obejrzane</h2><span class="count" id="watchedCount"></span></div>
     <div class="grid" id="watchedList"></div>
     <div class="empty" id="watchedEmpty" hidden>Nic jeszcze nie obejrzane w tym miesiącu. Klapsy w dłoń!</div>
   </section>
-
   <section>
     <div class="sec-head">
-      <h2 class="want">Do obejrzenia</h2>
-      <span class="count" id="todoCount"></span>
+      <h2 class="want">Do obejrzenia</h2><span class="count" id="todoCount"></span>
     </div>
     <div class="grid" id="todoList"></div>
-    <div class="empty" id="todoEmpty" hidden>Nic nie wybrane — klikaj ☆ przy filmach w sekcji „Reszta", żeby trafiły tutaj.</div>
+    <div class="empty" id="todoEmpty" hidden>Nic nie wybrane — kliknij ☆ przy filmie w sekcji „Reszta".</div>
   </section>
-
   <section>
     <div class="sec-head">
-      <h2 class="rest">Reszta</h2>
-      <span class="count" id="restCount"></span>
+      <h2 class="rest">Reszta</h2><span class="count" id="restCount"></span>
       <button class="btn add-film" id="addFilmBtn">＋ Dodaj film</button>
     </div>
     <div class="grid" id="restList"></div>
@@ -269,410 +65,144 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
   </section>
 </main>
 
+<!-- ============ WIDOK: RANKING ============ -->
 <main id="rankingMain" hidden>
   <section>
-    <div class="sec-head">
-      <h2 class="seen">Ranking wszech czasów</h2>
-      <span class="count" id="rankCount"></span>
-    </div>
+    <div class="sec-head"><h2 class="seen">Ranking wszech czasów</h2><span class="count" id="rankCount"></span></div>
     <div class="rank-list" id="rankList"></div>
     <div class="empty" id="rankEmpty" hidden>Jeszcze nic nie obejrzane — ranking czeka na pierwszy seans.</div>
   </section>
 </main>
 
-<dialog id="addDialog">
-  <form method="dialog" id="addForm">
-    <h3>Dodaj film ręcznie</h3>
-    <label>Tytuł *
-      <input type="text" id="afTitle" required placeholder="np. Diuna: Część trzecia">
-    </label>
-    <label>Link do Filmwebu
-      <input type="url" id="afLink" placeholder="https://www.filmweb.pl/film/...">
-    </label>
-    <label>Adres plakatu (URL obrazka)
-      <input type="url" id="afPoster" placeholder="https://fwcdn.pl/fpo/...jpg">
-      <small>Na Filmwebie: prawy przycisk na plakacie → „Kopiuj adres obrazu"</small>
-    </label>
-    <div class="af-row">
-      <label>Miesiąc
-        <select id="afMonth"></select>
-      </label>
-      <label>Długość (min)
-        <input type="number" id="afLength" min="1" max="500" placeholder="120">
-      </label>
+<!-- ============ WIDOK: TOP 10 ============ -->
+<main id="top10Main" hidden>
+  <section>
+    <div class="top10-cols">
+      <div>
+        <h2>Top 10 — Karolina</h2>
+        <div class="rank-list" id="top10Kar"></div>
+        <div class="empty" id="top10KarEmpty" hidden>Karolina nie oceniła jeszcze żadnego filmu.</div>
+      </div>
+      <div>
+        <h2>Top 10 — Adam</h2>
+        <div class="rank-list" id="top10Adam"></div>
+        <div class="empty" id="top10AdamEmpty" hidden>Adam nie ocenił jeszcze żadnego filmu.</div>
+      </div>
     </div>
+  </section>
+</main>
+
+<!-- ============ WIDOK: SAGI ============ -->
+<main id="sagiMain" hidden>
+  <section>
+    <div class="sec-head"><h2 class="seen">Sagi i uniwersa</h2></div>
+    <div id="sagaGroups"></div>
+  </section>
+</main>
+
+<!-- ============ WIDOK: SERIALE ============ -->
+<main id="serialeMain" hidden>
+  <section>
+    <div class="sec-head">
+      <h2 class="seen">Obejrzane</h2><span class="count" id="tvWatchedCount"></span>
+    </div>
+    <div class="grid" id="tvWatchedList"></div>
+    <div class="empty" id="tvWatchedEmpty" hidden>Brak obejrzanych seriali.</div>
+  </section>
+  <section>
+    <div class="sec-head">
+      <h2 class="want">Do obejrzenia</h2><span class="count" id="tvWantCount"></span>
+    </div>
+    <div class="grid" id="tvWantList"></div>
+    <div class="empty" id="tvWantEmpty" hidden>Brak wybranych seriali.</div>
+  </section>
+  <section>
+    <div class="sec-head">
+      <h2 class="rest">Reszta</h2><span class="count" id="tvRestCount"></span>
+      <button class="btn add-film" id="addTvBtn">＋ Dodaj serial</button>
+    </div>
+    <div class="grid" id="tvRestList"></div>
+    <div class="empty" id="tvRestEmpty" hidden>Brak dodanych seriali — kliknij „Dodaj serial".</div>
+  </section>
+  <section>
+    <div class="top10-cols">
+      <div>
+        <h2>Top seriali — Karolina</h2>
+        <div class="rank-list" id="tvTop10Kar"></div>
+      </div>
+      <div>
+        <h2>Top seriali — Adam</h2>
+        <div class="rank-list" id="tvTop10Adam"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ WIDOK: LOSUJ ============ -->
+<main id="losujMain" hidden>
+  <section>
+    <div class="sec-head"><h2 class="seen">Pule do losowania</h2></div>
+    <div class="pools">
+      <div class="pool-panel">
+        <h2>Karolina <span class="pool-count" id="count-kar">0/30</span></h2>
+        <div class="pool-grid" id="pool-kar"></div>
+        <button class="btn" id="addPoolKar">＋ Dodaj do puli</button>
+      </div>
+      <div class="pool-panel">
+        <h2>Adam <span class="pool-count" id="count-adam">0/30</span></h2>
+        <div class="pool-grid" id="pool-adam"></div>
+        <button class="btn" id="addPoolAdam">＋ Dodaj do puli</button>
+      </div>
+    </div>
+    <div class="draw-area">
+      <div class="draw-source">
+        <label><input type="radio" name="drawSrc" value="both" checked><span>Obie pule</span></label>
+        <label><input type="radio" name="drawSrc" value="kar"><span>Tylko Karolina</span></label>
+        <label><input type="radio" name="drawSrc" value="adam"><span>Tylko Adam</span></label>
+      </div>
+      <button class="draw-btn" id="drawBtn">🎲 Losuj!</button>
+      <div class="draw-card" id="drawCard" hidden></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ DIALOG: wyszukiwarka / dodawanie ============ -->
+<dialog id="searchDialog">
+  <form method="dialog" id="searchForm">
+    <h3 id="searchTitle">Dodaj film</h3>
+    <input type="text" id="searchInput" class="sr-input" placeholder="Wpisz tytuł (min. 2 znaki)…" autocomplete="off">
+    <div class="sr-results" id="searchResults"></div>
+
+    <label id="searchMonthWrap">Miesiąc
+      <select id="searchMonth"></select>
+    </label>
+
+    <details class="manual-fallback">
+      <summary>Nie znalazłeś filmu? Dodaj ręcznie</summary>
+      <div class="af-row">
+        <label>Tytuł *<input type="text" id="mfTitle"></label>
+        <label>Link<input type="url" id="mfLink" placeholder="https://..."></label>
+      </div>
+      <div class="af-row">
+        <label>Adres plakatu (URL)<input type="url" id="mfPoster" placeholder="https://...jpg"></label>
+        <label>Długość (min)<input type="number" id="mfLength" min="1" max="500"></label>
+      </div>
+      <div class="af-actions">
+        <button type="button" class="btn primary" id="mfSave">Dodaj ręcznie</button>
+      </div>
+    </details>
+
     <div class="af-actions">
-      <button type="button" class="btn" id="afCancel">Anuluj</button>
-      <button type="submit" class="btn primary" id="afSave">Dodaj film</button>
+      <button type="button" class="btn" id="searchCancel">Zamknij</button>
     </div>
   </form>
 </dialog>
 
 <footer>
-  Oceny i statusy zapisują się lokalnie w tej przeglądarce (localStorage).<br>
-  Repertuar aktualizuje się automatycznie przez GitHub Actions.
+  Repertuar aktualizuje się automatycznie przez GitHub Actions.<br>
+  Oceny, statusy, sagi i seriale zapisują się we wspólnej bazie Firebase — widoczne dla Karoliny i Adama na każdym urządzeniu.
 </footer>
 
-<script>
-"use strict";
-const STORE_KEY = "cc-seans-v1";
-const START_MONTH = "2026-01";
-const PEOPLE = [["kar","Karolina"],["adam","Adam"]];
-
-let DB = {months:{}, showtimes:{}, updated:null};
-let state = loadState();           // { [filmId]: {watched, kar, adam, ads} }
-let currentMonth = null;
-
-/* ---------- storage ---------- */
-function loadState(){
-  try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
-  catch(e){ return {}; }
-}
-function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
-function fs(id){ return state[id] || (state[id] = {watched:false, want:false, kar:null, adam:null, ads:null}); }
-
-/* ręcznie dodane filmy: { "2026-06": [ {id,title,poster,link,length,manual:true,...} ] } */
-const MANUAL_KEY = "cc-seans-manual-v1";
-let manual = loadManual();
-function loadManual(){
-  try{ return JSON.parse(localStorage.getItem(MANUAL_KEY)) || {}; }
-  catch(e){ return {}; }
-}
-function saveManual(){ localStorage.setItem(MANUAL_KEY, JSON.stringify(manual)); }
-
-/* filmy z API + ręczne dla danego miesiąca */
-function monthFilms(m){
-  const out = Object.assign({}, DB.months[m]?.films ?? {});
-  for(const f of (manual[m] ?? [])) out[f.id] = f;
-  return out;
-}
-function allMonthKeys(){
-  return [...new Set([...Object.keys(DB.months), ...Object.keys(manual)])];
-}
-
-/* ---------- helpers ---------- */
-function monthRange(){
-  // od START_MONTH do max(bieżący miesiąc, miesiące w danych)
-  const out = [];
-  const now = new Date();
-  let end = now.getFullYear()*12 + now.getMonth();
-  for(const m of allMonthKeys()){
-    const [y,mo] = m.split("-").map(Number);
-    end = Math.max(end, y*12 + (mo-1));
-  }
-  const [sy,sm] = START_MONTH.split("-").map(Number);
-  for(let i = sy*12+(sm-1); i <= end; i++){
-    out.push(`${Math.floor(i/12)}-${String(i%12+1).padStart(2,"0")}`);
-  }
-  return out;
-}
-const MONTH_NAMES = ["styczeń","luty","marzec","kwiecień","maj","czerwiec",
-  "lipiec","sierpień","wrzesień","październik","listopad","grudzień"];
-function monthLabel(m){
-  const [y,mo] = m.split("-");
-  return `${MONTH_NAMES[+mo-1]} ’${y.slice(2)}`;
-}
-function isCurrentMonth(m){
-  const n = new Date();
-  return m === `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}`;
-}
-function avg(s){
-  const v = [s.kar, s.adam].filter(x => x !== null && x !== "" && !isNaN(x)).map(Number);
-  if(!v.length) return null;
-  return v.reduce((a,b)=>a+b,0)/v.length;
-}
-function fmtAvg(a){ return a === null ? "–" : (Math.round(a*10)/10).toLocaleString("pl-PL"); }
-function esc(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
-function fmtDt(iso){
-  const d = new Date(iso);
-  if(isNaN(d)) return iso;
-  return d.toLocaleDateString("pl-PL",{weekday:"short",day:"numeric",month:"numeric"})
-    + " " + d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"});
-}
-
-/* ---------- render ---------- */
-function renderMonths(){
-  const nav = document.getElementById("months");
-  nav.innerHTML = "";
-  for(const m of monthRange()){
-    const n = Object.keys(monthFilms(m)).length;
-    const b = document.createElement("button");
-    b.innerHTML = `${esc(monthLabel(m))} <span class="cnt">(${n})</span>`;
-    b.className = m === currentMonth ? "active" : "";
-    b.onclick = () => { currentMonth = m; render(); };
-    nav.appendChild(b);
-  }
-}
-
-function ticketHTML(film, st, showShows){
-  const a = avg(st);
-  const poster = film.poster
-    ? `<img src="${esc(film.poster)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=ph>🎬</div>'">`
-    : `<div class="ph">🎬</div>`;
-  const link = film.link
-    ? `<a href="${esc(film.link)}" target="_blank" rel="noopener">${esc(film.title)}</a>`
-    : esc(film.title);
-
-  let shows = "";
-  if(showShows){
-    const evs = (DB.showtimes[film.id] || []).slice()
-      .sort((x,y)=>String(x.dt).localeCompare(String(y.dt)))
-      .filter(e => new Date(e.dt) > new Date()).slice(0,4);
-    if(evs.length){
-      shows = `<div class="shows"><div class="sh-label">Najbliższe pokazy</div><ul>` +
-        evs.map(e=>`<li><span class="when">${esc(fmtDt(e.dt))}</span>
-          <span>${esc(e.cinema.replace("Poznań ",""))}</span>
-          ${(e.attrs||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</li>`).join("") +
-        `</ul></div>`;
-    }
-  }
-
-  return `
-  <article class="ticket ${st.watched?"watched":""} ${st.want&&!st.watched?"wanted":""}" data-id="${esc(film.id)}">
-    <div class="poster">${poster}</div>
-    <div class="perf"></div>
-    <div class="t-body">
-      <div class="stamp ${a===null?"none":""}" title="Średnia ocena">${fmtAvg(a)}</div>
-      <div class="t-title">${link}</div>
-      <div class="t-meta">
-        ${film.length?`<span>${film.length} min</span>`:""}
-        ${film.year?`<span>${esc(film.year)}</span>`:""}
-        <span class="cin">${(film.cinemas||[]).map(c=>esc(c.replace("Poznań ",""))).join(" · ")}</span>
-        ${film.manual?`<button class="t-del" data-act="del" title="Usuń ręcznie dodany film">usuń</button>`:""}
-      </div>
-      ${st.watched ? `
-      <div class="rates">
-        ${PEOPLE.map(([k,name])=>`
-        <div class="rate">
-          <span class="who">${name}</span>
-          <input type="number" min="1" max="10" step="0.5" inputmode="decimal"
-                 data-field="${k}" value="${st[k] ?? ""}" placeholder="1–10">
-        </div>`).join("")}
-        <div class="rate ads">
-          <span class="who">Reklamy</span>
-          <input type="number" min="0" max="60" step="1" inputmode="numeric"
-                 data-field="ads" value="${st.ads ?? ""}" placeholder="min">
-        </div>
-      </div>` : ""}
-      <div class="toggle">
-        <button data-act="toggle">${st.watched ? "✓ Obejrzane" : "Oznacz jako obejrzane"}</button>
-        ${!st.watched ? `<button data-act="want">${st.want ? "★ Na liście" : "☆ Do obejrzenia"}</button>` : ""}
-      </div>
-      ${shows}
-    </div>
-  </article>`;
-}
-
-function sortFilms(arr, mode){
-  const cmp = {
-    "avg-desc":(a,b)=>(avg(fs(b.id))??-1)-(avg(fs(a.id))??-1),
-    "avg-asc": (a,b)=>(avg(fs(a.id))??99)-(avg(fs(b.id))??99),
-    "title":   (a,b)=>a.title.localeCompare(b.title,"pl"),
-    "ads-desc":(a,b)=>(fs(b.id).ads??-1)-(fs(a.id).ads??-1),
-    "ads-asc": (a,b)=>(fs(a.id).ads??999)-(fs(b.id).ads??999),
-    "seen":    (a,b)=>String(a.firstSeen).localeCompare(String(b.firstSeen)),
-  }[mode] || ((a,b)=>0);
-  return arr.slice().sort(cmp);
-}
-
-function render(){
-  renderMonths();
-  const films = Object.values(monthFilms(currentMonth));
-  const mode = document.getElementById("sort").value;
-  const showShows = isCurrentMonth(currentMonth);
-
-  const watched = sortFilms(films.filter(f=>fs(f.id).watched), mode);
-  const fallback = mode.startsWith("avg")||mode.startsWith("ads") ? "title" : mode;
-  const want = sortFilms(films.filter(f=>!fs(f.id).watched && fs(f.id).want), fallback);
-  const rest = sortFilms(films.filter(f=>!fs(f.id).watched && !fs(f.id).want), fallback);
-
-  document.getElementById("watchedList").innerHTML =
-    watched.map(f=>ticketHTML(f, fs(f.id), false)).join("");
-  document.getElementById("todoList").innerHTML =
-    want.map(f=>ticketHTML(f, fs(f.id), showShows)).join("");
-  document.getElementById("restList").innerHTML =
-    rest.map(f=>ticketHTML(f, fs(f.id), showShows)).join("");
-
-  document.getElementById("watchedEmpty").hidden = watched.length>0;
-  document.getElementById("todoEmpty").hidden = want.length>0;
-  document.getElementById("restEmpty").hidden = rest.length>0;
-  document.getElementById("watchedCount").textContent = `${watched.length} z ${films.length}`;
-  document.getElementById("todoCount").textContent = `${want.length}`;
-  document.getElementById("restCount").textContent = `${rest.length}`;
-}
-
-/* ---------- ranking (wszystkie miesiące) ---------- */
-function renderRanking(){
-  // dedupe po id — ten sam film w kilku miesiącach = jeden wpis
-  const byId = new Map();
-  for(const m of allMonthKeys()){
-    for(const f of Object.values(monthFilms(m))){
-      if(!fs(f.id).watched) continue;
-      if(!byId.has(f.id)) byId.set(f.id, {film:f, months:[]});
-      byId.get(f.id).months.push(m);
-    }
-  }
-  const rows = [...byId.values()].sort((a,b)=>{
-    const av = avg(fs(a.film.id)), bv = avg(fs(b.film.id));
-    if(av===null && bv===null) return a.film.title.localeCompare(b.film.title,"pl");
-    if(av===null) return 1;
-    if(bv===null) return -1;
-    return bv-av || a.film.title.localeCompare(b.film.title,"pl");
-  });
-
-  document.getElementById("rankList").innerHTML = rows.map((r,i)=>{
-    const st = fs(r.film.id), a = avg(st);
-    const posCls = a===null ? "" : ["p1","p2","p3"][i] || "";
-    const poster = r.film.poster
-      ? `<img src="${esc(r.film.poster)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=ph>🎬</div>'">`
-      : `<div class="ph">🎬</div>`;
-    return `
-    <div class="rank-row ${posCls} ${a===null?"unrated":""}">
-      <div class="rank-pos">${i+1}</div>
-      <div class="rank-poster">${poster}</div>
-      <div class="rank-info">
-        <div class="rank-title">${esc(r.film.title)}</div>
-        <div class="rank-meta">
-          <span>${r.months.sort().map(monthLabel).map(esc).join(", ")}</span>
-          ${r.film.length?`<span>${r.film.length} min</span>`:""}
-          ${st.ads!=null?`<span>reklamy: ${st.ads} min</span>`:""}
-        </div>
-      </div>
-      <div class="rank-scores">
-        ${PEOPLE.map(([k,name])=>`<div class="pp"><span class="who">${name}</span>
-          <span class="val">${st[k]??"–"}</span></div>`).join("")}
-        <div class="rank-avg" title="Średnia">${fmtAvg(a)}</div>
-      </div>
-    </div>`;
-  }).join("");
-
-  document.getElementById("rankEmpty").hidden = rows.length>0;
-  document.getElementById("rankCount").textContent =
-    rows.length ? `${rows.length} ${rows.length===1?"film":rows.length<5?"filmy":"filmów"}` : "";
-}
-
-/* ---------- przełączanie widoków ---------- */
-function setView(){
-  const ranking = location.hash === "#ranking";
-  document.getElementById("months").hidden = ranking;
-  document.querySelector(".toolbar").style.display = ranking ? "none" : "";
-  document.getElementById("monthlyMain").hidden = ranking;
-  document.getElementById("rankingMain").hidden = !ranking;
-  document.getElementById("tabMonths").classList.toggle("active", !ranking);
-  document.getElementById("tabRanking").classList.toggle("active", ranking);
-  ranking ? renderRanking() : render();
-}
-window.addEventListener("hashchange", setView);
-
-/* ---------- events (delegacja) ---------- */
-document.querySelector("main").addEventListener("click", e=>{
-  const btn = e.target.closest("button[data-act]");
-  if(!btn) return;
-  const id = btn.closest(".ticket").dataset.id;
-  if(btn.dataset.act === "toggle") fs(id).watched = !fs(id).watched;
-  if(btn.dataset.act === "want")   fs(id).want = !fs(id).want;
-  if(btn.dataset.act === "del"){
-    if(!confirm("Usunąć ten ręcznie dodany film?")) return;
-    for(const m of Object.keys(manual)){
-      manual[m] = manual[m].filter(f=>f.id!==id);
-      if(!manual[m].length) delete manual[m];
-    }
-    delete state[id];
-    saveManual();
-  }
-  saveState(); render();
-});
-
-/* ---------- dodawanie filmu ręcznie ---------- */
-const addDialog = document.getElementById("addDialog");
-document.getElementById("addFilmBtn").onclick = ()=>{
-  const sel = document.getElementById("afMonth");
-  sel.innerHTML = monthRange().map(m=>
-    `<option value="${m}" ${m===currentMonth?"selected":""}>${esc(monthLabel(m))}</option>`).join("");
-  document.getElementById("addForm").reset();
-  addDialog.showModal();
-};
-document.getElementById("afCancel").onclick = ()=>addDialog.close();
-document.getElementById("addForm").addEventListener("submit", e=>{
-  const title = document.getElementById("afTitle").value.trim();
-  if(!title){ e.preventDefault(); return; }
-  const m = document.getElementById("afMonth").value;
-  const len = document.getElementById("afLength").value;
-  const film = {
-    id: "man-" + Date.now(),
-    title,
-    poster: document.getElementById("afPoster").value.trim() || null,
-    link: document.getElementById("afLink").value.trim() || null,
-    length: len ? Number(len) : null,
-    year: m.slice(0,4),
-    cinemas: [],
-    firstSeen: m + "-01",
-    manual: true,
-  };
-  (manual[m] ??= []).push(film);
-  saveManual();
-  currentMonth = m;
-  render();
-});
-
-/* eksport / import (oceny + filmy ręczne) */
-document.getElementById("export").onclick = ()=>{
-  const payload = {version:2, ratings:state, manual:manual};
-  const blob = new Blob([JSON.stringify(payload,null,1)],{type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `seans-oceny-${new Date().toISOString().slice(0,10)}.json`;
-  a.click(); URL.revokeObjectURL(a.href);
-};
-document.getElementById("import").onclick = ()=>document.getElementById("importFile").click();
-document.getElementById("importFile").addEventListener("change", async e=>{
-  const f = e.target.files[0]; if(!f) return;
-  try{
-    const data = JSON.parse(await f.text());
-    if(data && data.version === 2){
-      state = Object.assign({}, state, data.ratings || {});
-      for(const [m, list] of Object.entries(data.manual || {})){
-        manual[m] ??= [];
-        for(const film of list){
-          if(!manual[m].some(x=>x.id===film.id)) manual[m].push(film);
-        }
-      }
-      saveManual();
-    }else{
-      state = Object.assign({}, state, data); // stary format: same oceny
-    }
-    saveState(); render();
-  }catch(err){ alert("Nie udało się wczytać pliku: " + err.message); }
-  e.target.value = "";
-});
-document.querySelector("main").addEventListener("change", e=>{
-  const inp = e.target.closest("input[data-field]");
-  if(!inp) return;
-  const id = inp.closest(".ticket").dataset.id;
-  const v = inp.value === "" ? null : Number(inp.value);
-  fs(id)[inp.dataset.field] = (v===null || isNaN(v)) ? null : v;
-  saveState(); render();
-});
-document.getElementById("sort").addEventListener("change", render);
-
-/* ---------- init ---------- */
-(async function init(){
-  try{
-    const r = await fetch("data/films.json?v=" + Date.now());
-    DB = await r.json();
-  }catch(e){
-    document.getElementById("updated").textContent =
-      "Nie udało się wczytać data/films.json — sprawdź, czy plik istnieje w repo.";
-  }
-  const range = monthRange();
-  const now = range.find(isCurrentMonth);
-  currentMonth = (now && DB.months[now]) ? now
-    : (Object.keys(DB.months).sort().pop() || now || range[range.length-1]);
-  if(DB.updated){
-    document.getElementById("updated").textContent = "Dane z: " + DB.updated;
-  }
-  setView();
-})();
-</script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
