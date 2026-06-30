@@ -11,12 +11,10 @@
 </head>
 <body>
 
-<header>
-  <div class="marquee">
-    <h1>KINEAPOLIS</h1>
-    <div class="sub">Cinema City · Poznań Plaza &amp; Kinepolis</div>
-  </div>
-  <div class="updated" id="updated"></div>
+<header class="topbar">
+  <a href="#" class="logo">KINEAPOLIS
+    <span class="sub">Cinema City Poznań</span>
+  </a>
   <nav class="tabs" id="tabs">
     <a href="#" data-view="months">Miesiące</a>
     <a href="#ranking" data-view="ranking">Ranking</a>
@@ -27,6 +25,7 @@
     <a href="#przekaski" data-view="przekaski">Przekąski</a>
     <a href="#losuj" data-view="losuj">Losuj</a>
   </nav>
+  <div class="updated" id="updated" style="font-family:var(--mono);font-size:10px;color:var(--muted);flex-shrink:0;white-space:nowrap"></div>
 </header>
 
 <nav class="months" id="months" aria-label="Wybór miesiąca"></nav>
