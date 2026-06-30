@@ -196,11 +196,12 @@ function ticketHTML(film, st, opts={}){
 
   return `
   <article class="ticket ${st.watched?"watched":""} ${st.want&&!st.watched?"wanted":""}"
-    data-id="${esc(film.id)}" data-kind="${kind}" style="${color?`border-left-color:${color}`:""}">
-    <div class="poster" data-act="details">${poster}</div>
-    <div class="perf"></div>
+    data-id="${esc(film.id)}" data-kind="${kind}">
+    <div class="poster" data-act="details">
+      ${poster}
+      <div class="stamp ${a===null?"none":""}" ${color?`style="border-color:${color};color:${color}"`:""} title="Średnia ocena">${fmtAvg(a)}</div>
+    </div>
     <div class="t-body">
-      <div class="stamp ${a===null?"none":""}" ${color?`style="border-color:${color};color:${color};box-shadow:0 0 12px ${color}55"`:""} title="Średnia ocena">${fmtAvg(a)}</div>
       <button type="button" class="t-title" data-act="details">${esc(film.title)}</button>
       <div class="t-meta">
         ${film.length?`<span>${film.length} min</span>`:""}
@@ -235,10 +236,12 @@ function snackCardHTML(s, st){
   const a = avg(st);
   const color = scoreColor(a);
   return `
-  <article class="ticket snack" data-id="${esc(s.id)}" data-kind="snack" style="${color?`border-left-color:${color}`:""}">
-    <div class="snack-icon">${esc(s.icon||"🍿")}</div>
+  <article class="ticket snack" data-id="${esc(s.id)}" data-kind="snack">
+    <div class="snack-icon">
+      ${esc(s.icon||"🍿")}
+      <div class="stamp ${a===null?"none":""}" ${color?`style="border-color:${color};color:${color}"`:""} title="Średnia ocena">${fmtAvg(a)}</div>
+    </div>
     <div class="t-body">
-      <div class="stamp ${a===null?"none":""}" ${color?`style="border-color:${color};color:${color};box-shadow:0 0 12px ${color}55"`:""} title="Średnia ocena">${fmtAvg(a)}</div>
       <div class="t-title">${esc(s.name)}</div>
       <div class="rates">
         ${PEOPLE.map(([k,name])=>`
