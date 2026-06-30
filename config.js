@@ -15,4 +15,4 @@ export const firebaseConfig = {
 
 // TMDB (wyszukiwanie filmów/seriali po nazwie + plakaty):
 // https://www.themoviedb.org/settings/api → "API Key (v3 auth)"
-export const TMDB_KEY = "WSTAW_TU_KLUCZ_TMDB";
+export const TMDB_KEY = "ffc8ce25a368ff051a3c153eb73cbd38";
