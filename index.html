@@ -141,14 +141,53 @@
 
 <!-- ============ WIDOK: ULUBIONE ============ -->
 <main id="ulubioneMain" hidden>
-  <section>
-    <div class="sec-head">
-      <h2 class="seen">Ulubione filmy</h2><span class="count" id="favCount"></span>
-      <button class="btn add-film" id="addFavBtn">＋ Dodaj do ulubionych</button>
+  <div style="max-width:1200px;margin:0 auto;padding:0 24px 80px">
+    <div class="fav-cols">
+
+      <!-- ── Karolina ── -->
+      <section>
+        <div class="sec-head">
+          <h2 class="fav-kar">💜 Karolina</h2>
+          <span class="count" id="favCountKar"></span>
+          <button class="btn add-film" id="addFavBtnKar">＋ Dodaj</button>
+        </div>
+        <div class="fav-sort">
+          <label for="favSortKar" style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase">Sortuj:</label>
+          <select id="favSortKar" style="font-size:12px;padding:5px 8px">
+            <option value="title">Tytuł A→Z</option>
+            <option value="avg-desc">Ocena ↓</option>
+            <option value="avg-asc">Ocena ↑</option>
+            <option value="year-desc">Rok ↓</option>
+            <option value="year-asc">Rok ↑</option>
+          </select>
+        </div>
+        <div class="grid" id="favListKar"></div>
+        <div class="empty" id="favEmptyKar" hidden>Karolina nie dodała jeszcze żadnego ulubionego filmu.</div>
+      </section>
+
+      <!-- ── Adam ── -->
+      <section>
+        <div class="sec-head">
+          <h2 class="fav-adam">💙 Adam</h2>
+          <span class="count" id="favCountAdam"></span>
+          <button class="btn add-film" id="addFavBtnAdam">＋ Dodaj</button>
+        </div>
+        <div class="fav-sort">
+          <label for="favSortAdam" style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase">Sortuj:</label>
+          <select id="favSortAdam" style="font-size:12px;padding:5px 8px">
+            <option value="title">Tytuł A→Z</option>
+            <option value="avg-desc">Ocena ↓</option>
+            <option value="avg-asc">Ocena ↑</option>
+            <option value="year-desc">Rok ↓</option>
+            <option value="year-asc">Rok ↑</option>
+          </select>
+        </div>
+        <div class="grid" id="favListAdam"></div>
+        <div class="empty" id="favEmptyAdam" hidden>Adam nie dodał jeszcze żadnego ulubionego filmu.</div>
+      </section>
+
     </div>
-    <div class="grid" id="favList"></div>
-    <div class="empty" id="favEmpty" hidden>Brak ulubionych — kliknij „Dodaj do ulubionych", żeby dodać dowolny film niezależnie od repertuaru i miesiąca.</div>
-  </section>
+  </div>
 </main>
 
 <!-- ============ WIDOK: PRZEKĄSKI ============ -->

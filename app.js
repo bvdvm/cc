@@ -14,12 +14,13 @@ const db = getFirestore(app);
 const stateCol   = collection(db, "state");
 const manualCol  = collection(db, "manualFilms");
 const tvCol      = collection(db, "tvShows");
-const favCol     = collection(db, "favorites");   // ulubione — bez miesiąca
+const favKarCol  = collection(db, "favKar");   // ulubione Karoliny
+const favAdamCol = collection(db, "favAdam");  // ulubione Adama
 const snackCol   = collection(db, "snacks");       // przekąski
 const detailsCol = collection(db, "filmDetails");  // cache obsady (TMDB)
 const poolDocRef = (person) => doc(db, "pool", person);
 
-let STATE = {}, MANUAL = {}, TV = {}, FAV = {}, SNACKS = {}, POOL = { karolina: [], adam: [] };
+let STATE = {}, MANUAL = {}, TV = {}, FAV_KAR = {}, FAV_ADAM = {}, SNACKS = {}, POOL = { karolina: [], adam: [] };
 let firebaseReady = false;
 
 function defaultState(){
@@ -43,9 +44,13 @@ async function deleteTvShow(id){
   await deleteDoc(doc(tvCol, id)).catch(()=>{});
   await deleteDoc(doc(stateCol, id)).catch(()=>{});
 }
-async function addFavorite(film){ await setDoc(doc(favCol, film.id), film); }
-async function deleteFavorite(id){
-  await deleteDoc(doc(favCol, id)).catch(()=>{});
+async function addFavorite(person, film){
+  const col = person==="karolina" ? favKarCol : favAdamCol;
+  await setDoc(doc(col, film.id), film);
+}
+async function deleteFavorite(person, id){
+  const col = person==="karolina" ? favKarCol : favAdamCol;
+  await deleteDoc(doc(col, id)).catch(()=>{});
   await deleteDoc(doc(stateCol, id)).catch(()=>{});
 }
 async function addSnack(snack){ await setDoc(doc(snackCol, snack.id), snack); }
@@ -73,8 +78,11 @@ onSnapshot(manualCol, snap=>{
 onSnapshot(tvCol, snap=>{
   const next={}; snap.forEach(d=>next[d.id]={id:d.id, ...d.data()}); TV=next; renderCurrentView();
 }, err=>showFirebaseError(err));
-onSnapshot(favCol, snap=>{
-  const next={}; snap.forEach(d=>next[d.id]={id:d.id, ...d.data()}); FAV=next; renderCurrentView();
+onSnapshot(favKarCol, snap=>{
+  const next={}; snap.forEach(d=>next[d.id]={id:d.id, ...d.data()}); FAV_KAR=next; renderCurrentView();
+}, err=>showFirebaseError(err));
+onSnapshot(favAdamCol, snap=>{
+  const next={}; snap.forEach(d=>next[d.id]={id:d.id, ...d.data()}); FAV_ADAM=next; renderCurrentView();
 }, err=>showFirebaseError(err));
 onSnapshot(snackCol, snap=>{
   const next={}; snap.forEach(d=>next[d.id]={id:d.id, ...d.data()}); SNACKS=next; renderCurrentView();
@@ -155,7 +163,8 @@ function scoreLevel(v){
 /* ---------- znajdź film/serial/ulubiony/przekąskę po id (do modala szczegółów) ---------- */
 function findAnyItem(id, kind){
   if(kind==="tv") return TV[id];
-  if(kind==="fav") return FAV[id];
+  if(kind==="fav-kar") return FAV_KAR[id];
+  if(kind==="fav-adam") return FAV_ADAM[id];
   if(kind==="snack") return SNACKS[id];
   if(MANUAL[id]) return MANUAL[id];
   for(const m of allMonthKeys()){ const f = monthFilms(m)[id]; if(f) return f; }
@@ -431,10 +440,26 @@ function renderSeriale(){
    WIDOK: ULUBIONE (bez przypisania do miesiąca)
    ============================================================ */
 function renderFavorites(){
-  const items = Object.values(FAV);
-  document.getElementById("favList").innerHTML = items.map(f=>ticketHTML(f, stateFor(f.id), {kind:"fav", showAds:true})).join("");
-  document.getElementById("favEmpty").hidden = items.length>0;
-  document.getElementById("favCount").textContent = items.length;
+  const sortFav = (items, mode) => {
+    return items.slice().sort((a,b)=>{
+      if(mode==="avg-desc") return (avg(stateFor(b.id))??-1)-(avg(stateFor(a.id))??-1);
+      if(mode==="avg-asc")  return (avg(stateFor(a.id))??99)-(avg(stateFor(b.id))??99);
+      if(mode==="year-desc") return (b.year||0)-(a.year||0);
+      if(mode==="year-asc")  return (a.year||0)-(b.year||0);
+      return a.title.localeCompare(b.title,"pl");
+    });
+  };
+  const modeKar  = document.getElementById("favSortKar")?.value  || "title";
+  const modeAdam = document.getElementById("favSortAdam")?.value || "title";
+  const karItems  = sortFav(Object.values(FAV_KAR),  modeKar);
+  const adamItems = sortFav(Object.values(FAV_ADAM), modeAdam);
+
+  document.getElementById("favListKar").innerHTML  = karItems.map(f=>ticketHTML(f, stateFor(f.id), {kind:"fav-kar", showAds:false})).join("");
+  document.getElementById("favListAdam").innerHTML = adamItems.map(f=>ticketHTML(f, stateFor(f.id), {kind:"fav-adam", showAds:false})).join("");
+  document.getElementById("favEmptyKar").hidden  = karItems.length>0;
+  document.getElementById("favEmptyAdam").hidden = adamItems.length>0;
+  document.getElementById("favCountKar").textContent  = karItems.length;
+  document.getElementById("favCountAdam").textContent = adamItems.length;
 }
 
 /* ============================================================
@@ -533,7 +558,8 @@ function wireTicketEvents(containerId){
       case "del":
         if(!confirm("Usunąć ten wpis?")) return;
         if(kind==="tv") deleteTvShow(id);
-        else if(kind==="fav") deleteFavorite(id);
+        else if(kind==="fav-kar")  deleteFavorite("karolina", id);
+        else if(kind==="fav-adam") deleteFavorite("adam", id);
         else if(kind==="snack") deleteSnack(id);
         else deleteManualFilm(id);
         break;
@@ -569,7 +595,10 @@ document.getElementById("addPoolKar").onclick = ()=>openSearch({mode:"pool", per
 document.getElementById("addPoolAdam").onclick = ()=>openSearch({mode:"pool", person:"adam"});
 document.getElementById("addFilmBtn").onclick = ()=>openSearch({mode:"film", month:currentMonth});
 document.getElementById("addTvBtn").onclick = ()=>openSearch({mode:"tv"});
-document.getElementById("addFavBtn").onclick = ()=>openSearch({mode:"fav"});
+document.getElementById("addFavBtnKar").onclick  = ()=>openSearch({mode:"fav", person:"karolina"});
+document.getElementById("addFavBtnAdam").onclick = ()=>openSearch({mode:"fav", person:"adam"});
+document.getElementById("favSortKar")?.addEventListener("change", renderFavorites);
+document.getElementById("favSortAdam")?.addEventListener("change", renderFavorites);
 
 /* ============================================================
    WYSZUKIWARKA TMDB (wspólny dialog: film / serial / pula)
@@ -585,7 +614,7 @@ function openSearch(ctx){
   document.getElementById("searchTitle").textContent =
     ctx.mode==="tv" ? "Dodaj serial"
     : ctx.mode==="pool" ? `Dodaj do puli (${ctx.person==="karolina"?"Karolina":"Adam"})`
-    : ctx.mode==="fav" ? "Dodaj do ulubionych"
+    : ctx.mode==="fav" ? `Dodaj do ulubionych — ${ctx.person==="karolina"?"Karolina":"Adam"}`
     : "Dodaj film";
   document.getElementById("searchInput").value = "";
   document.getElementById("searchResults").innerHTML = "";
@@ -672,7 +701,7 @@ async function selectSearchResult(tmdbId){
       link:`https://www.themoviedb.org/movie/${tmdbId}`, length:runtime,
       year:(r.release_date||"").slice(0,4)||null, manual:true, source:"tmdb",
     };
-    await addFavorite(film);
+    await addFavorite(searchCtx.person, film);
     if(collectionName) await setFilmState(film.id, {saga: collectionName});
     searchDialog.close(); return;
   }
@@ -712,7 +741,7 @@ document.getElementById("mfSave").onclick = async ()=>{
   } else if(searchCtx.mode==="tv"){
     await addTvShow({...base, year:null});
   } else if(searchCtx.mode==="fav"){
-    await addFavorite({...base, year:null});
+    await addFavorite(searchCtx.person, {...base, year:null});
   } else {
     const month = document.getElementById("searchMonth").value || searchCtx.month;
     await addManualFilm(month, {...base, year:month.slice(0,4), cinemas:[], firstSeen:month+"-01"});
