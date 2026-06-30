@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SEANS — Cinema City Poznań</title>
+<title>KINEAPOLIS — Cinema City Poznań</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;700&display=swap&subset=latin-ext" rel="stylesheet">
@@ -13,7 +13,7 @@
 
 <header>
   <div class="marquee">
-    <h1>SEANS</h1>
+    <h1>KINEAPOLIS</h1>
     <div class="sub">Cinema City · Poznań Plaza &amp; Kinepolis</div>
   </div>
   <div class="updated" id="updated"></div>
@@ -23,6 +23,8 @@
     <a href="#top10" data-view="top10">Top 10</a>
     <a href="#sagi" data-view="sagi">Sagi</a>
     <a href="#seriale" data-view="seriale">Seriale</a>
+    <a href="#ulubione" data-view="ulubione">Ulubione</a>
+    <a href="#przekaski" data-view="przekaski">Przekąski</a>
     <a href="#losuj" data-view="losuj">Losuj</a>
   </nav>
 </header>
@@ -138,6 +140,30 @@
   </section>
 </main>
 
+<!-- ============ WIDOK: ULUBIONE ============ -->
+<main id="ulubioneMain" hidden>
+  <section>
+    <div class="sec-head">
+      <h2 class="seen">Ulubione filmy</h2><span class="count" id="favCount"></span>
+      <button class="btn add-film" id="addFavBtn">＋ Dodaj do ulubionych</button>
+    </div>
+    <div class="grid" id="favList"></div>
+    <div class="empty" id="favEmpty" hidden>Brak ulubionych — kliknij „Dodaj do ulubionych", żeby dodać dowolny film niezależnie od repertuaru i miesiąca.</div>
+  </section>
+</main>
+
+<!-- ============ WIDOK: PRZEKĄSKI ============ -->
+<main id="przekaskiMain" hidden>
+  <section>
+    <div class="sec-head">
+      <h2 class="seen">Przekąski</h2>
+      <button class="btn add-film" id="addSnackBtn">＋ Dodaj przekąskę</button>
+    </div>
+    <div class="grid" id="snackList"></div>
+    <div class="empty" id="snackEmpty" hidden>Brak przekąsek — kliknij „Dodaj przekąskę".</div>
+  </section>
+</main>
+
 <!-- ============ WIDOK: LOSUJ ============ -->
 <main id="losujMain" hidden>
   <section>
@@ -196,6 +222,31 @@
       <button type="button" class="btn" id="searchCancel">Zamknij</button>
     </div>
   </form>
+</dialog>
+
+<!-- ============ DIALOG: notatka ============ -->
+<dialog id="noteDialog">
+  <h3 id="noteDialogTitle">Notatka</h3>
+  <label>Krótka notatka (widoczna na kafelku, ~80 znaków)
+    <input type="text" id="noteShort" maxlength="80" placeholder="np. świetna muzyka, za długi finał…">
+  </label>
+  <label>Pełna notatka (widoczna tylko po kliknięciu w film)
+    <textarea id="noteLong" rows="5" style="width:100%;margin-top:5px;background:var(--panel-2);
+      border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:9px 10px;
+      font-size:14px;font-family:var(--body);resize:vertical" placeholder="Twoja pełna recenzja…"></textarea>
+  </label>
+  <div class="af-actions">
+    <button type="button" class="btn" id="noteCancel">Anuluj</button>
+    <button type="button" class="btn primary" id="noteSave">Zapisz</button>
+  </div>
+</dialog>
+
+<!-- ============ DIALOG: szczegóły filmu ============ -->
+<dialog id="detailsDialog" class="details-dialog">
+  <div id="detailsBody"></div>
+  <div class="af-actions">
+    <button type="button" class="btn" id="detailsClose">Zamknij</button>
+  </div>
 </dialog>
 
 <footer>
