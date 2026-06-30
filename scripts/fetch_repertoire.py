@@ -7,6 +7,11 @@ Uruchamiane cyklicznie przez GitHub Actions (np. co tydzień),
 dzięki czemu każdy miesiąc "zbiera" wszystkie filmy, które w nim leciały.
 API Cinema City zwraca tylko przyszłe seanse, więc dane historyczne
 budują się wyłącznie poprzez regularne uruchamianie skryptu.
+
+UWAGA: ten plik dotyczy WYŁĄCZNIE repertuaru kina (co leci, kiedy).
+Oceny, status obejrzane/do obejrzenia, ręcznie dodane filmy, sagi,
+seriale i losowanie żyją teraz w Firebase (patrz app.js) i NIE są
+ruszane przez ten skrypt.
 """
 
 import json
@@ -21,15 +26,12 @@ HEADERS = {
     "Accept": "application/json",
     "Referer": "https://www.cinema-city.pl/",
 }
-# Ile dni do przodu pobieramy przy każdym uruchomieniu.
-# Action chodzi co tydzień, więc 14 dni daje zapas.
 DAYS_AHEAD = 14
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "films.json"
 
-# Nazwy kin, które nas interesują (dopasowanie po fragmencie displayName)
 CINEMA_NAME_FILTERS = ["plaza", "kinepolis"]
-CITY_FILTER = "pozna"  # "Poznań" bez ogonków na wszelki wypadek
+CITY_FILTER = "pozna"
 
 
 def get_json(url: str):
@@ -39,7 +41,6 @@ def get_json(url: str):
 
 
 def find_poznan_cinemas(until: str):
-    """Zwraca listę kin w Poznaniu: [{'id': ..., 'name': ...}, ...]"""
     url = f"{BASE}/cinemas/with-event/until/{until}?attr=&lang=pl_PL"
     data = get_json(url)
     cinemas = data.get("body", {}).get("cinemas", [])
@@ -54,7 +55,6 @@ def find_poznan_cinemas(until: str):
 
 
 def fetch_day(cinema_id: str, day: str):
-    """Filmy + seanse dla kina w danym dniu."""
     url = f"{BASE}/film-events/in-cinema/{cinema_id}/at-date/{day}?attr=&lang=pl_PL"
     data = get_json(url)
     body = data.get("body", {})
@@ -86,7 +86,6 @@ def main():
 
     db = load_db()
     current_month = today.strftime("%Y-%m")
-    # Seanse trzymamy tylko dla bieżącego miesiąca — czyścimy stare
     db["showtimes"] = {}
 
     films_seen = 0
@@ -117,14 +116,12 @@ def main():
                     "cinemas": [],
                     "firstSeen": day_str,
                 })
-                # uzupełnij plakat, jeśli wcześniej go nie było
                 if not entry.get("poster") and f.get("posterLink"):
                     entry["poster"] = f["posterLink"]
                 if cinema["name"] not in entry["cinemas"]:
                     entry["cinemas"].append(cinema["name"])
                 films_seen += 1
 
-            # Najbliższe seanse — tylko dla bieżącego miesiąca
             if month_key == current_month:
                 for ev in events:
                     fid = str(ev.get("filmId"))
@@ -137,7 +134,7 @@ def main():
                                   if a in ("imax", "4dx", "vip", "screenx", "3d", "dubbed", "subbed")],
                     }
                     db["showtimes"].setdefault(fid, [])
-                    if len(db["showtimes"][fid]) < 6:  # max 6 najbliższych
+                    if len(db["showtimes"][fid]) < 6:
                         db["showtimes"][fid].append(slot)
 
     db["updated"] = today.isoformat()
