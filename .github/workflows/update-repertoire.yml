@@ -2,11 +2,9 @@ name: Aktualizuj repertuar Cinema City
 
 on:
   schedule:
-    # Co poniedziałek o 6:00 UTC + 1. dzień miesiąca (żeby nowy miesiąc
-    # od razu dostał swoje filmy)
     - cron: "0 6 * * 1"
     - cron: "0 6 1 * *"
-  workflow_dispatch: {}   # możliwość ręcznego uruchomienia z zakładki Actions
+  workflow_dispatch: {}
 
 permissions:
   contents: write
