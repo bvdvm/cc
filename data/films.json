@@ -254,6 +254,19 @@
      "title": "Odyseja ukraiński dubbing",
      "year": "2026"
     },
+    "7476d2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-07-27",
+     "id": "7476d2r",
+     "length": 85,
+     "link": "https://www.cinema-city.pl/filmy/ekipa-zwierzakow/7476d2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/7476D2R.jpg",
+     "title": "Ekipa zwierzaków",
+     "year": "2025"
+    },
     "7667s2r": {
      "cinemas": [
       "Poznań - Kinepolis"
@@ -827,6 +840,18 @@
      "title": "Monterey Pop",
      "year": "1968"
     },
+    "8354s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis"
+     ],
+     "firstSeen": "2026-07-27",
+     "id": "8354s2r",
+     "length": 109,
+     "link": "https://www.cinema-city.pl/filmy/jej-pieklo/8354s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8354S2R.jpg",
+     "title": "Jej piekło",
+     "year": "2026"
+    },
     "8355s2r": {
      "cinemas": [
       "Poznań - Kinepolis"
@@ -850,6 +875,19 @@
      "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8357S2R.jpg",
      "title": "O czym sobie nie mówimy",
      "year": "2026"
+    },
+    "8358s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-07-27",
+     "id": "8358s2r",
+     "length": 102,
+     "link": "https://www.cinema-city.pl/filmy/requiem-dla-snu/8358s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8358S2R.jpg",
+     "title": "Requiem dla snu",
+     "year": "2000"
     },
     "8376o2r": {
      "cinemas": [
@@ -880,6 +918,83 @@
   },
   "2026-08": {
    "films": {
+    "1438d2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-08-03",
+     "id": "1438d2r",
+     "length": 97,
+     "link": "https://www.cinema-city.pl/filmy/gdzie-jest-dory/1438d2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/1438D2R.jpg",
+     "title": "Gdzie jest Dory",
+     "year": "2016"
+    },
+    "6597s2x": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-08-07",
+     "id": "6597s2x",
+     "length": 208,
+     "link": "https://www.cinema-city.pl/filmy/wladca-pierscieni-druzyna-pierscienia-wersja-rozszerzona/6597s2x",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/6597S2X.jpg",
+     "title": "Władca Pierścieni: Drużyna Pierścienia (wersja rozszerzona)",
+     "year": "2001"
+    },
+    "6598s2x": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-08-08",
+     "id": "6598s2x",
+     "length": 223,
+     "link": "https://www.cinema-city.pl/filmy/wladca-pierscieni-dwie-wieze-wersja-rozszerzona/6598s2x",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/6598S2X.jpg",
+     "title": "Władca Pierścieni: Dwie wieże (wersja rozszerzona)",
+     "year": "2002"
+    },
+    "6599s2x": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-08-09",
+     "id": "6599s2x",
+     "length": 252,
+     "link": "https://www.cinema-city.pl/filmy/wladca-pierscieni-powrot-krola-wersja-rozszerzona/6599s2x",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/6599S2X.jpg",
+     "title": "Władca Pierścieni: Powrót króla (wersja rozszerzona)",
+     "year": "2003"
+    },
+    "7460s2r": {
+     "cinemas": [
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-08-01",
+     "id": "7460s2r",
+     "length": 172,
+     "link": "https://www.cinema-city.pl/filmy/odyseja/7460s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/7460S2R.jpg",
+     "title": "Odyseja",
+     "year": "2026"
+    },
+    "7468s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-08-07",
+     "id": "7468s2r",
+     "length": 713,
+     "link": "https://www.cinema-city.pl/filmy/wladca-pierscieni-maraton-wersja-rezyserska/7468s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/7468S2R.jpg",
+     "title": "Władca Pierścieni - maraton (wersja reżyserska)",
+     "year": "2001, 2002, 2003"
+    },
     "8085s2r": {
      "cinemas": [
       "Poznań - Kinepolis",
@@ -904,6 +1019,57 @@
      "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8085S2R1.jpg",
      "title": "Spider-Man: Całkiem nowy dzień ukraiński dubbing",
      "year": "2026"
+    },
+    "8093d2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-08-01",
+     "id": "8093d2r",
+     "length": 89,
+     "link": "https://www.cinema-city.pl/filmy/psi-patrol-i-dinozaury/8093d2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8093D2R.jpg",
+     "title": "Psi patrol i dinozaury",
+     "year": "2026"
+    },
+    "8093d2r1": {
+     "cinemas": [
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-08-07",
+     "id": "8093d2r1",
+     "length": 89,
+     "link": "https://www.cinema-city.pl/filmy/psi-patrol-i-dinozaury-ukrainski-dubbing/8093d2r1",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8093D2R1.jpg",
+     "title": "Psi patrol i dinozaury ukraiński dubbing",
+     "year": "2026"
+    },
+    "8407d3r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-08-03",
+     "id": "8407d3r",
+     "length": 100,
+     "link": "https://www.cinema-city.pl/filmy/gdzie-jest-nemo-3d/8407d3r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8407D3R.jpg",
+     "title": "Gdzie jest Nemo 3D",
+     "year": "2012"
+    },
+    "8409d2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-08-03",
+     "id": "8409d2r",
+     "length": 98,
+     "link": "https://www.cinema-city.pl/filmy/wall-e/8409d2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8409D2R.jpg",
+     "title": "Wall-E",
+     "year": "2008"
     }
    }
   }
@@ -915,28 +1081,42 @@
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-24T18:00:00"
+    "dt": "2026-07-27T18:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-24T20:15:00"
+    "dt": "2026-07-27T20:15:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-25T18:00:00"
+    "dt": "2026-07-27T22:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-26T18:00:00"
+    "dt": "2026-07-28T18:00:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-28T20:15:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-28T22:20:00"
    }
   ],
   "7460s2r": [
@@ -945,42 +1125,42 @@
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T12:00:00"
+    "dt": "2026-07-27T12:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T12:30:00"
+    "dt": "2026-07-27T12:30:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T14:15:00"
+    "dt": "2026-07-27T14:15:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T15:45:00"
+    "dt": "2026-07-27T15:45:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T16:15:00"
+    "dt": "2026-07-27T16:15:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T17:30:00"
+    "dt": "2026-07-27T17:30:00"
    }
   ],
   "7460s2r1": [
@@ -989,86 +1169,109 @@
      "dubbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T16:30:00"
+    "dt": "2026-07-27T12:40:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T20:10:00"
+    "dt": "2026-07-27T16:20:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-21T16:30:00"
+    "dt": "2026-07-28T14:50:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-21T20:10:00"
+    "dt": "2026-07-29T11:30:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-22T16:30:00"
+    "dt": "2026-07-30T11:30:00"
+   }
+  ],
+  "7476d2r": [
+   {
+    "attrs": [
+     "dubbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-27T13:20:00"
+   },
+   {
+    "attrs": [
+     "dubbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-27T15:30:00"
+   },
+   {
+    "attrs": [
+     "dubbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-27T17:40:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-22T20:10:00"
+    "dt": "2026-07-27T12:50:00"
+   },
+   {
+    "attrs": [
+     "dubbed"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-27T15:00:00"
+   },
+   {
+    "attrs": [
+     "dubbed"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-27T17:10:00"
    }
   ],
   "7667s2r": [
    {
     "attrs": [
-     "dubbed"
+     "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T15:40:00"
+    "dt": "2026-07-27T15:50:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T18:40:00"
-   },
-   {
-    "attrs": [
-     "dubbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T15:40:00"
+    "dt": "2026-07-28T15:50:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T18:40:00"
-   },
-   {
-    "attrs": [
-     "dubbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T15:40:00"
+    "dt": "2026-07-29T15:50:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T18:40:00"
+    "dt": "2026-07-30T15:50:00"
    }
   ],
   "7784d2r": [
@@ -1077,42 +1280,42 @@
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T12:30:00"
+    "dt": "2026-07-27T12:30:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T15:00:00"
+    "dt": "2026-07-27T15:00:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T16:00:00"
+    "dt": "2026-07-27T16:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T17:00:00"
+    "dt": "2026-07-27T17:00:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T18:30:00"
+    "dt": "2026-07-27T18:30:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T11:20:00"
+    "dt": "2026-07-27T12:10:00"
    }
   ],
   "7785s2r": [
@@ -1121,28 +1324,28 @@
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T17:20:00"
+    "dt": "2026-07-27T17:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T17:20:00"
+    "dt": "2026-07-28T17:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T17:20:00"
+    "dt": "2026-07-29T17:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-23T17:20:00"
+    "dt": "2026-07-30T17:20:00"
    }
   ],
   "7794d2r": [
@@ -1151,42 +1354,42 @@
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T11:30:00"
+    "dt": "2026-07-27T13:20:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T13:10:00"
+    "dt": "2026-07-27T16:00:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T14:10:00"
+    "dt": "2026-07-27T16:20:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T15:50:00"
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-27T12:50:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T16:20:00"
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-27T14:00:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T18:30:00"
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-27T15:30:00"
    }
   ],
   "7795s2r": [
@@ -1195,42 +1398,42 @@
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T19:20:00"
+    "dt": "2026-07-27T19:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T22:00:00"
+    "dt": "2026-07-27T22:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T19:20:00"
+    "dt": "2026-07-28T19:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T22:00:00"
+    "dt": "2026-07-28T22:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T19:20:00"
+    "dt": "2026-07-29T19:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T22:00:00"
+    "dt": "2026-07-29T22:00:00"
    }
   ],
   "7913s2r": [
@@ -1239,42 +1442,42 @@
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T16:20:00"
+    "dt": "2026-07-27T16:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T19:40:00"
-   },
-   {
-    "attrs": [
-     "subbed"
-    ],
-    "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T21:30:00"
+    "dt": "2026-07-27T19:30:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T16:20:00"
+    "dt": "2026-07-28T16:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T19:40:00"
+    "dt": "2026-07-28T19:30:00"
    },
    {
     "attrs": [
      "subbed"
     ],
-    "cinema": "Poznań - Plaza",
-    "dt": "2026-07-21T21:30:00"
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-29T16:20:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-30T16:20:00"
    }
   ],
   "7999d2r": [
@@ -1283,42 +1486,28 @@
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T12:00:00"
+    "dt": "2026-07-27T12:00:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T14:20:00"
+    "dt": "2026-07-27T14:20:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T12:00:00"
+    "dt": "2026-07-28T12:00:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T14:20:00"
-   },
-   {
-    "attrs": [
-     "dubbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T12:00:00"
-   },
-   {
-    "attrs": [
-     "dubbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T14:20:00"
+    "dt": "2026-07-28T14:20:00"
    }
   ],
   "8023d2r": [
@@ -1327,42 +1516,42 @@
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T11:30:00"
+    "dt": "2026-07-27T13:40:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T12:10:00"
+    "dt": "2026-07-27T15:45:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T13:40:00"
+    "dt": "2026-07-27T16:30:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T14:20:00"
+    "dt": "2026-07-27T18:40:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T15:45:00"
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-27T13:20:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T16:30:00"
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-27T15:30:00"
    }
   ],
   "8023d2r1": [
@@ -1371,37 +1560,38 @@
      "dubbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T14:20:00"
+    "dt": "2026-07-28T10:30:00"
    },
    {
     "attrs": [
      "dubbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-21T14:20:00"
-   },
-   {
-    "attrs": [
-     "dubbed"
-    ],
-    "cinema": "Poznań - Plaza",
-    "dt": "2026-07-22T14:20:00"
-   },
-   {
-    "attrs": [
-     "dubbed"
-    ],
-    "cinema": "Poznań - Plaza",
-    "dt": "2026-07-23T14:20:00"
+    "dt": "2026-07-28T12:40:00"
    }
   ],
   "8085s2r": [
+   {
+    "attrs": [
+     "dubbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-29T10:00:00"
+   },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
     "dt": "2026-07-29T10:30:00"
+   },
+   {
+    "attrs": [
+     "3d",
+     "dubbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-29T11:20:00"
    },
    {
     "attrs": [
@@ -1423,21 +1613,6 @@
     ],
     "cinema": "Poznań - Kinepolis",
     "dt": "2026-07-29T13:40:00"
-   },
-   {
-    "attrs": [
-     "3d",
-     "dubbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-29T14:30:00"
-   },
-   {
-    "attrs": [
-     "dubbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-29T15:20:00"
    }
   ],
   "8085s2r1": [
@@ -1469,21 +1644,7 @@
      "dubbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T10:40:00"
-   },
-   {
-    "attrs": [
-     "dubbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T10:40:00"
-   },
-   {
-    "attrs": [
-     "dubbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-23T10:40:00"
+    "dt": "2026-07-28T10:40:00"
    }
   ],
   "8114s2r": [
@@ -1492,42 +1653,42 @@
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T18:00:00"
+    "dt": "2026-07-27T18:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T20:30:00"
+    "dt": "2026-07-27T20:30:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T16:10:00"
+    "dt": "2026-07-27T20:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T18:40:00"
-   },
-   {
-    "attrs": [
-     "subbed"
-    ],
-    "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T21:30:00"
+    "dt": "2026-07-27T22:30:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T18:00:00"
+    "dt": "2026-07-28T18:00:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-28T20:30:00"
    }
   ],
   "8117s2r": [
@@ -1536,28 +1697,28 @@
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T21:00:00"
+    "dt": "2026-07-27T21:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T21:00:00"
+    "dt": "2026-07-28T21:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T21:00:00"
+    "dt": "2026-07-29T21:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-23T21:00:00"
+    "dt": "2026-07-30T21:00:00"
    }
   ],
   "8134s2r": [
@@ -1566,42 +1727,42 @@
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T16:50:00"
+    "dt": "2026-07-27T16:40:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T19:30:00"
+    "dt": "2026-07-27T19:10:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T20:50:00"
+    "dt": "2026-07-27T20:50:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T22:10:00"
+    "dt": "2026-07-27T21:40:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T19:50:00"
+    "dt": "2026-07-27T19:50:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T22:20:00"
+    "dt": "2026-07-27T22:20:00"
    }
   ],
   "8200s2r": [
@@ -1610,72 +1771,42 @@
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T15:40:00"
+    "dt": "2026-07-27T15:40:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T18:10:00"
+    "dt": "2026-07-27T18:10:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T20:40:00"
+    "dt": "2026-07-27T20:40:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T16:30:00"
+    "dt": "2026-07-27T16:40:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T19:00:00"
+    "dt": "2026-07-27T19:10:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T21:10:00"
-   }
-  ],
-  "8224s2r": [
-   {
-    "attrs": [
-     "subbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T21:30:00"
-   },
-   {
-    "attrs": [
-     "subbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T21:30:00"
-   },
-   {
-    "attrs": [
-     "subbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T21:30:00"
-   },
-   {
-    "attrs": [
-     "subbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-23T21:30:00"
+    "dt": "2026-07-27T21:40:00"
    }
   ],
   "8228s2r": [
@@ -1684,51 +1815,42 @@
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T16:30:00"
+    "dt": "2026-07-27T18:40:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T18:40:00"
+    "dt": "2026-07-27T18:50:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T19:00:00"
+    "dt": "2026-07-27T21:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T21:20:00"
-   },
-   {
-    "attrs": [
-     "subbed"
-    ],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T21:30:00"
+    "dt": "2026-07-27T21:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-20T17:20:00"
-   }
-  ],
-  "8245d2r": [
+    "dt": "2026-07-27T19:20:00"
+   },
    {
     "attrs": [
-     "dubbed"
+     "subbed"
     ],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-21T11:00:00"
+    "dt": "2026-07-27T21:50:00"
    }
   ],
   "8308s2r": [
@@ -1747,34 +1869,48 @@
     "dt": "2026-07-28T18:30:00"
    }
   ],
-  "8355s2r": [
+  "8354s2r": [
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T16:50:00"
+    "dt": "2026-07-27T19:50:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T16:50:00"
+    "dt": "2026-07-27T22:20:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T16:50:00"
+    "dt": "2026-07-28T19:50:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-23T16:50:00"
+    "dt": "2026-07-28T22:20:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-29T19:50:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-29T22:20:00"
    }
   ],
   "8357s2r": [
@@ -1783,83 +1919,105 @@
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T19:00:00"
+    "dt": "2026-07-27T19:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-20T21:40:00"
+    "dt": "2026-07-27T21:40:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T19:00:00"
+    "dt": "2026-07-28T19:00:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-21T21:40:00"
+    "dt": "2026-07-28T21:40:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T19:00:00"
+    "dt": "2026-07-29T21:30:00"
    },
    {
     "attrs": [
      "subbed"
     ],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-22T21:40:00"
+    "dt": "2026-07-30T21:30:00"
+   }
+  ],
+  "8358s2r": [
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-27T20:40:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-27T19:40:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-27T22:00:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-07-28T20:10:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-28T19:40:00"
+   },
+   {
+    "attrs": [
+     "subbed"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-07-28T22:00:00"
    }
   ],
   "8376o2r": [
    {
     "attrs": [],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-24T15:20:00"
+    "dt": "2026-07-27T15:20:00"
    },
    {
     "attrs": [],
     "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-24T18:00:00"
+    "dt": "2026-07-27T18:00:00"
    },
    {
     "attrs": [],
     "cinema": "Poznań - Plaza",
-    "dt": "2026-07-24T17:00:00"
-   },
-   {
-    "attrs": [],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-25T15:20:00"
-   },
-   {
-    "attrs": [],
-    "cinema": "Poznań - Kinepolis",
-    "dt": "2026-07-25T18:00:00"
-   },
-   {
-    "attrs": [],
-    "cinema": "Poznań - Plaza",
-    "dt": "2026-07-25T17:00:00"
-   }
-  ],
-  "8376o2r5": [
-   {
-    "attrs": [],
-    "cinema": "Poznań - Plaza",
-    "dt": "2026-07-25T16:00:00"
+    "dt": "2026-07-27T17:00:00"
    }
   ]
  },
- "updated": "2026-07-20"
+ "updated": "2026-07-27"
 }
