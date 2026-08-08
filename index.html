@@ -61,10 +61,6 @@
     <div class="hero-side" id="hero-side"></div>
   </div>
   <div class="content">
-    <div class="pc-legend">
-      <span class="pc-legend-label">System ocen:</span>
-      <div id="home-legend"></div>
-    </div>
     <div class="section">
       <div class="sec-hd">
         <h2>Filmy w Cinema City Poznań</h2>
@@ -188,6 +184,8 @@
     <button class="top-tab" data-top="adam">💙 Adam</button>
     <button class="top-tab" data-top="kino">🎟️ Top Kino</button>
     <button class="top-tab" data-top="dom">🏠 Top Dom</button>
+    <button class="top-tab" data-top="actors">🎭 Aktorzy</button>
+    <button class="top-tab" data-top="directors">🎬 Reżyserzy</button>
   </div>
   <div class="content" style="padding-top:18px">
     <div class="rank-list" id="top-list">
@@ -234,8 +232,8 @@
         </select>
         <select id="losuj-source">
           <option value="all">Cała baza filmów</option>
+          <option value="lista">Z listy do obejrzenia</option>
           <option value="rated">Tylko ocenione</option>
-          <option value="lista">Tylko z listy</option>
         </select>
       </div>
       <button class="draw-btn" id="draw-btn" onclick="doLosuj()">🎲 LOSUJ!</button>

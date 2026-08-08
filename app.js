@@ -261,32 +261,43 @@ function rankRow(film, i, key) {
 
 // ── HOME ──
 function renderHome() {
-  // legend
-  document.getElementById("home-legend").innerHTML =
-    LEVELS.map(l => `<div class="pc-leg-item">
-      ${pcSVG(l.key, 30)}
-      <div class="pc-leg-text">
-        <span class="pc-leg-name" style="color:${l.color}">${l.name.replace(" Popcorn", "<br>Popcorn")}</span>
-        <span class="pc-leg-range">${l.min}–${l.max}%</span>
-      </div>
-    </div>`).join("");
-
-  // hero — weź pierwszy film z repertuaru kina
-  const nowFilms = Object.values(currentMonthFilms());
-  if (nowFilms.length) {
-    const f = nowFilms[0];
+  // hero — TMDB trending
+  fetchTmdbTrending().then(trending => {
+    if (!trending.length) return;
+    const f = trending[0];
     document.getElementById("hero-title").textContent = f.title;
     document.getElementById("hero-desc").textContent =
       [f.genre, f.length ? f.length + " min" : "", f.year].filter(Boolean).join(" · ");
-    const side = nowFilms.slice(1, 3);
+    if (f.poster) {
+      const bg = document.getElementById("hero-bg");
+      bg.innerHTML = `<img src="${f.poster.replace("w342","w780")}" alt="" style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0">`;
+      bg.style.position = "relative";
+    }
+    const side = trending.slice(1, 3);
     document.getElementById("hero-side").innerHTML = side.map(s => `
-      <div class="hero-side-item" onclick="setView('lista')">
+      <div class="hero-side-item" onclick="setView('lista')" style="position:relative;overflow:hidden">
         ${s.poster ? `<img src="${esc(s.poster)}" alt="" style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0">` : '<div class="hsi-ph">🎬</div>'}
-        <div class="hsi-ov"><div class="hsi-title">${esc(s.title)}</div></div>
+        <div class="hsi-ov"><div class="hsi-title">${esc(s.title)} ${s.year?"("+esc(s.year)+")":""}</div></div>
       </div>`).join("");
-    document.getElementById("home-now-sub").textContent = nowFilms.length + " filmów";
-    document.getElementById("home-now").innerHTML = nowFilms.slice(0, 6).map(f => mCard(f, "now")).join("");
-  }
+    // films grid — trending 2-8
+    document.getElementById("home-now-sub").textContent = "Popularne teraz · TMDB";
+    document.getElementById("home-now").innerHTML = trending.slice(0, 8).map(f => {
+      const rated = !!MOVIES[f.id] && !!RATINGS[f.id];
+      return `<div class="mcard" onclick="${rated ? `openDetail('${esc(f.id)}')` : `addToWatchlist('${esc(f.id)}',${JSON.stringify(f).replace(/"/g,'&quot;')})`}">
+        <div class="mc-poster">
+          ${f.poster ? `<img src="${esc(f.poster)}" alt="" loading="lazy">` : '<div class="mc-ph">🎬</div>'}
+          ${rated && RATINGS[f.id] ? (() => { const p=jointPct(f.id),lv=getLv(p); return `<div class="mc-badge">${pcSVG(lv.key,22)}<div class="mc-pct" style="border-color:${lv.color};color:${lv.color}">${p}%</div></div>`; })() : ""}
+        </div>
+        <div class="mc-body">
+          <div class="mc-title">${esc(f.title)}</div>
+          <div class="mc-meta"><span>${esc(f.genre||"")}</span>${f.year?`<span>${esc(f.year)}</span>`:""}</div>
+          <div class="mc-btns">
+            ${rated ? '<button class="mc-btn">Szczegóły →</button>' : '<button class="mc-btn primary">+ Do listy</button>'}
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+  });
 
   // top 3
   const rated = Object.values(MOVIES)
@@ -367,10 +378,70 @@ function renderLista() {
     : "<div class='empty'>Lista jest pusta — dodaj filmy przyciskiem powyżej.</div>";
 }
 
+/* ═══════════════════════════════════════════════
+   ACTOR / DIRECTOR RANKINGS
+═══════════════════════════════════════════════ */
+function buildPersonRankings(role) {
+  // role: "Aktor/ka" | "Reżyseria"
+  const agg = {}; // name -> { karScores:[], adamScores:[], movies:Set }
+  for (const [movieId, rating] of Object.entries(RATINGS)) {
+    const film = MOVIES[movieId];
+    const processScores = (who) => {
+      for (const [name, score] of Object.entries(rating[who]?.actorScores || {})) {
+        // Try to detect if it's director or actor - we tag director with 🎬 prefix in name internally
+        // We can't tell role from score alone so show all under actors, directors separately using Firestore details
+        if (!agg[name]) agg[name] = { karScores:[], adamScores:[], movies: new Set() };
+        if (who === "kar")  agg[name].karScores.push(score);
+        if (who === "adam") agg[name].adamScores.push(score);
+        if (film) agg[name].movies.add(film.title);
+      }
+    };
+    processScores("kar"); processScores("adam");
+  }
+  return Object.entries(agg)
+    .map(([name, data]) => {
+      const allScores = [...data.karScores, ...data.adamScores];
+      const avg = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length*10)/10 : 0;
+      const karAvg = data.karScores.length ? Math.round(data.karScores.reduce((a,b)=>a+b,0)/data.karScores.length*10)/10 : null;
+      const adamAvg= data.adamScores.length ? Math.round(data.adamScores.reduce((a,b)=>a+b,0)/data.adamScores.length*10)/10 : null;
+      return { name, avg, karAvg, adamAvg, movies: [...data.movies], count: allScores.length };
+    })
+    .filter(x => x.count > 0)
+    .sort((a, b) => b.avg - a.avg);
+}
+
+function renderActorRankings(type) {
+  const list = buildPersonRankings(type);
+  if (!list.length) {
+    document.getElementById("top-list").innerHTML = `<div class="empty">Brak ocen ${type === "actors" ? "aktorów" : "reżyserów"}. Oceń film i wypełnij sekcję obsady w formularzu.</div>`;
+    return;
+  }
+  document.getElementById("top-list").innerHTML = list.map((p, i) => {
+    const color = p.avg >= 4 ? "#4DAA70" : p.avg >= 3 ? "#E8952A" : "#D42B2B";
+    return `<div class="actor-rank-row ${i === 0 ? "gold" : ""}">
+      <div class="actor-rank-num" style="${i===0?"color:var(--gold)":i===1?"color:#909090":i===2?"color:#B07848":""}">${i+1}</div>
+      <div class="actor-rank-info">
+        <div class="actor-rank-name">${esc(p.name)}</div>
+        <div class="actor-rank-meta">
+          <span>${p.movies.slice(0,3).map(esc).join(", ")}${p.movies.length>3?" …":""}</span>
+          <span>${p.count} ${p.count === 1 ? "ocena" : "ocen"}</span>
+        </div>
+      </div>
+      <div class="actor-rank-score">
+        ${p.karAvg  !== null ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px">💛 <b style="color:${color}">${p.karAvg}/5</b></span>`  : ""}
+        ${p.adamAvg !== null ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px">💙 <b style="color:${color}">${p.adamAvg}/5</b></span>` : ""}
+        <div class="actor-avg" style="color:${color}">${p.avg}/5</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
 // ── TOP ──
 let curTopKey = "joint";
 function renderTop(key) {
   curTopKey = key;
+  if (key === "actors")    { renderActorRankings("actors");    return; }
+  if (key === "directors") { renderActorRankings("directors"); return; }
   let films = Object.values(MOVIES).filter(f => {
     if (key === "kino") return RATINGS[f.id]?.kar?.where === "kino" || RATINGS[f.id]?.adam?.where === "kino";
     if (key === "dom")  return RATINGS[f.id]?.kar?.where === "dom"  || RATINGS[f.id]?.adam?.where === "dom";
@@ -414,32 +485,53 @@ function renderSagi() {
 // ── LOSUJ ──
 let lastDrawn = null;
 function doLosuj() {
-  const genre  = document.getElementById("losuj-genre").value;
-  const source = document.getElementById("losuj-source").value;
-  let pool = source === "rated" ? Object.values(MOVIES).filter(f => RATINGS[f.id])
-           : source === "lista" ? Object.values(WATCHLIST)
-           : [...Object.values(MOVIES), ...Object.values(WATCHLIST)];
+  const genre  = document.getElementById("losuj-genre")?.value  || "";
+  const source = document.getElementById("losuj-source")?.value || "all";
+  let pool = [];
+  if (source === "lista")  pool = Object.values(WATCHLIST);
+  else if (source === "rated") pool = Object.values(MOVIES).filter(f => RATINGS[f.id]);
+  else pool = [...Object.values(MOVIES), ...Object.values(WATCHLIST)];
+  // deduplicate by id
+  const seen = new Set();
+  pool = pool.filter(f => { if (seen.has(f.id)) return false; seen.add(f.id); return true; });
   if (genre) pool = pool.filter(f => f.genre === genre);
-  if (!pool.length) { alert("Brak filmów w wybranej puli. Zmień filtr."); return; }
+  if (!pool.length) {
+    alert("Brak filmów w wybranej puli. Zmień gatunek lub źródło, ewentualnie dodaj filmy do bazy."); return;
+  }
 
   const btn = document.getElementById("draw-btn");
   const res = document.getElementById("draw-res");
+  if (!btn || !res) return;
   btn.disabled = true; res.style.display = "none";
 
-  let i = 0, max = 14;
+  let i = 0, max = 16, picked = null;
   function tick() {
-    const r = pool[Math.floor(Math.random() * pool.length)];
-    document.getElementById("dr-title").textContent = r.title;
-    document.getElementById("dr-meta").textContent  = [r.genre, r.length ? r.length+" min" : "", r.year].filter(Boolean).join(" · ");
-    const dp = document.getElementById("dr-poster");
-    dp.innerHTML = r.poster ? `<img src="${esc(r.poster)}" alt="" style="width:100%;height:100%;object-fit:cover">` : "🎬";
-    if (i === max - 1) lastDrawn = r;
+    picked = pool[Math.floor(Math.random() * pool.length)];
+    const titleEl = document.getElementById("dr-title");
+    const metaEl  = document.getElementById("dr-meta");
+    const dpEl    = document.getElementById("dr-poster");
+    if (!titleEl || !metaEl || !dpEl) { btn.disabled = false; return; }
+    titleEl.textContent = picked.title;
+    metaEl.textContent  = [picked.genre, picked.length ? picked.length+" min" : "", picked.year].filter(Boolean).join(" · ");
+    dpEl.innerHTML = picked.poster
+      ? `<img src="${esc(picked.poster)}" alt="" style="width:100%;height:100%;object-fit:cover">`
+      : "🎬";
     i++;
-    if (i < max) setTimeout(tick, 50 + i * 8);
+    if (i < max) setTimeout(tick, 45 + i * 9);
     else {
-      res.style.display = "block"; btn.disabled = false;
-      document.getElementById("dr-rate-btn").onclick = () => { if (lastDrawn) { addToMovies(lastDrawn); openRating(lastDrawn.id); } };
-      document.getElementById("dr-add-btn").onclick  = () => { if (lastDrawn) addToWatchlist(lastDrawn.id, lastDrawn); };
+      lastDrawn = picked;
+      res.style.display = "block";
+      btn.disabled = false;
+      const rateBtn = document.getElementById("dr-rate-btn");
+      const addBtn  = document.getElementById("dr-add-btn");
+      if (rateBtn) rateBtn.onclick = () => {
+        if (!lastDrawn) return;
+        addToMovies(lastDrawn).then(() => openRating(lastDrawn.id));
+      };
+      if (addBtn) addBtn.onclick = () => {
+        if (!lastDrawn) return;
+        addToWatchlist(lastDrawn.id, lastDrawn);
+      };
     }
   }
   tick();
@@ -489,27 +581,49 @@ function renderZasady() {
 /* ═══════════════════════════════════════════════
    RATING FORM
 ═══════════════════════════════════════════════ */
-let rfState = { movieId:null, genre:null, person:"kar", where:"kino", scores:{ kar:null, adam:null } };
+let rfState = {
+  movieId: null, genre: null, person: "kar", where: "kino",
+  scores: { kar: null, adam: null },
+  actorScores: { kar: {}, adam: {} },  // { "Actor Name": score }
+  castList: [],  // [{name, role}] fetched from TMDB
+};
 
-function openRating(movieId) {
+async function openRating(movieId) {
   const film = MOVIES[movieId] || WATCHLIST[movieId];
   if (!film) return;
-  const r   = RATINGS[movieId];
-  const genre = film.genre || "";
-  const cats  = allCats(genre);
+  const r    = RATINGS[movieId];
+  const genre= film.genre || "";
   rfState = {
-    movieId,
-    genre,
+    movieId, genre,
     person: "kar",
     where:  r?.kar?.where || r?.adam?.where || "kino",
     scores: {
       kar:  r?.kar?.cats  ? [...r.kar.cats]  : Array(10).fill(3),
       adam: r?.adam?.cats ? [...r.adam.cats] : Array(10).fill(3),
-    }
+    },
+    actorScores: {
+      kar:  r?.kar?.actorScores  ? {...r.kar.actorScores}  : {},
+      adam: r?.adam?.actorScores ? {...r.adam.actorScores} : {},
+    },
+    castList: rfState.castList && rfState._lastMovieId === movieId ? rfState.castList : [],
   };
+  rfState._lastMovieId = movieId;
   document.getElementById("ratingTitle").textContent = "Oceń: " + film.title;
-  renderRFBody(film, cats);
+  renderRFBody(film, allCats(genre));
   document.getElementById("ratingDialog").showModal();
+  // async: fetch cast and inject actor section
+  if (!rfState.castList.length && film.tmdbId) {
+    const castData = await getCast(movieId, film.tmdbId);
+    if (castData) {
+      rfState.castList = [
+        ...(castData.director ? [{name: castData.director, role: "Reżyseria"}] : []),
+        ...(castData.cast || []).slice(0, 6).map(n => ({name: n, role: "Aktor/ka"})),
+      ];
+      rfState._lastMovieId = movieId;
+      const sect = document.getElementById("actor-section");
+      if (sect) sect.innerHTML = buildActorSection();
+    }
+  }
 }
 
 function renderRFBody(film, cats) {
@@ -551,6 +665,11 @@ function renderRFBody(film, cats) {
             `<div class="star ${sc[i]>=n?"on":""}" onclick="rfSetStar(${i},${n})">${n}</div>`).join("")}
           </div>
         </div>`).join("")}
+    </div>
+    <!-- Oceń obsadę -->
+    <div style="margin-bottom:12px">
+      <div class="rf-section-label" style="margin-bottom:8px">Oceń obsadę (1–5)</div>
+      <div class="actor-grid" id="actor-section">${buildActorSection()}</div>
     </div>
     <div class="rf-score-panel">
       <div class="rf-icon-area">
@@ -598,9 +717,48 @@ function renderRFBody(film, cats) {
     </div>`;
 }
 
-window.rfSetStar   = (i, n) => { rfState.scores[rfState.person][i] = n; const f = MOVIES[rfState.movieId]||WATCHLIST[rfState.movieId]; renderRFBody(f, allCats(rfState.genre)); };
-window.rfSetPerson = (p)    => { rfState.person = p; const f = MOVIES[rfState.movieId]||WATCHLIST[rfState.movieId]; renderRFBody(f, allCats(rfState.genre)); };
-window.rfSetWhere  = (w)    => { rfState.where  = w; const f = MOVIES[rfState.movieId]||WATCHLIST[rfState.movieId]; renderRFBody(f, allCats(rfState.genre)); };
+function rfRerender() {
+  const f = MOVIES[rfState.movieId] || WATCHLIST[rfState.movieId];
+  if (f) renderRFBody(f, allCats(rfState.genre));
+}
+function buildActorSection() {
+  const cast = rfState.castList;
+  if (!cast.length) return '<div class="sr-hint" style="padding:8px 0">Ładowanie obsady… (wymaga klucza TMDB)</div>';
+  const { person, actorScores } = rfState;
+  const sc = actorScores[person] || {};
+  return cast.map(({name, role}) => {
+    const cur = sc[name] || 0;
+    const isDir = role === "Reżyseria";
+    return `<div class="actor-card ${isDir?"director":""}">
+      <div class="actor-name">${isDir ? "🎬" : "🎭"} ${esc(name)}</div>
+      <div class="actor-role">${esc(role)}</div>
+      <div class="actor-scores">
+        ${["kar","adam"].map(who => {
+          const wsc = rfState.actorScores[who]?.[name] || 0;
+          return `<div class="actor-score-row">
+            <span class="actor-score-who">${who === "kar" ? "💛" : "💙"}</span>
+            <div class="actor-stars">${[1,2,3,4,5].map(n =>
+              `<div class="astar ${wsc >= n ? "on" : ""}" data-aname="${esc(name)}" data-awho="${who}" data-a-n="${n}"
+                onclick="rfSetActor('${esc(name).replace(/'/g,"\\'")}','${who}',${n})">${n}</div>`
+            ).join("")}</div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+window.rfSetStar    = (i, n) => { rfState.scores[rfState.person][i] = n; rfRerender(); };
+window.rfSetPerson  = (p)    => { rfState.person = p; rfRerender(); };
+window.rfSetWhere   = (w)    => { rfState.where  = w; rfRerender(); };
+window.rfSetActor   = (name, who, n) => {
+  rfState.actorScores[who] = rfState.actorScores[who] || {};
+  rfState.actorScores[who][name] = n;
+  // update dots visually without full rerender
+  document.querySelectorAll(`[data-aname="${CSS.escape(name)}"][data-awho="${who}"]`).forEach(el => {
+    el.classList.toggle("on", parseInt(el.dataset.aN) <= n);
+  });
+};
 
 async function saveRating() {
   const { movieId, where, scores } = rfState;
@@ -611,8 +769,8 @@ async function saveRating() {
   const saga          = document.getElementById("rf-saga")?.value.trim() || null;
 
   await setDoc(doc(COLL.ratings, movieId), {
-    kar:  { cats: scores.kar,  where, noteShort: noteKarShort,  noteShort_adam: null },
-    adam: { cats: scores.adam, where, noteShort: noteAdamShort },
+    kar:  { cats: scores.kar,  where, noteShort: noteKarShort,  actorScores: rfState.actorScores.kar  || {} },
+    adam: { cats: scores.adam, where, noteShort: noteAdamShort, actorScores: rfState.actorScores.adam || {} },
   });
   // uaktualnij sagę w movies
   if (saga !== null || (film.saga !== undefined && saga !== film.saga)) {
@@ -777,6 +935,32 @@ async function runSearch(q) {
   }).join("");
 }
 
+/* ═══════════════════════════════════════════════
+   TMDB TRENDING
+═══════════════════════════════════════════════ */
+let _trendingCache = null;
+let _trendingTime  = 0;
+async function fetchTmdbTrending() {
+  if (_trendingCache && Date.now() - _trendingTime < 5 * 60 * 1000) return _trendingCache;
+  if (!TMDB_KEY || TMDB_KEY.startsWith("WSTAW")) return [];
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${TMDB_KEY}&language=pl-PL`);
+    const d = await r.json();
+    _trendingCache = (d.results || []).slice(0, 10).map(res => ({
+      id:     "t" + res.id,
+      tmdbId: res.id,
+      title:  res.title,
+      poster: res.poster_path ? TMDB_IMG + res.poster_path : null,
+      year:   (res.release_date || "").slice(0, 4) || null,
+      genre:  tmdbGenre(res.genre_ids || []),
+      link:   `https://www.themoviedb.org/movie/${res.id}`,
+      length: null,
+    }));
+    _trendingTime = Date.now();
+    return _trendingCache;
+  } catch(e) { console.warn("TMDB trending error:", e); return []; }
+}
+
 async function selectTmdb(tmdbId) {
   document.getElementById("searchResults").innerHTML = `<div class="sr-hint">Pobieram szczegóły…</div>`;
   const det = await tmdbDetails(tmdbId);
@@ -803,6 +987,12 @@ async function selectTmdb(tmdbId) {
   }
 }
 window.selectTmdb = selectTmdb;
+window.doLosuj    = doLosuj;
+window.openRating = openRating;
+window.rfSetStar  = rfSetStar;
+window.rfSetPerson= rfSetPerson;
+window.rfSetWhere = rfSetWhere;
+window.rfSetActor = rfSetActor;
 
 /* ═══════════════════════════════════════════════
    REPERTUAR Z data/films.json

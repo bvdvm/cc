@@ -248,7 +248,14 @@ img { display: block; }
 .genre-cat-cats { font-size: 12px; color: var(--ink); line-height: 1.5; }
 
 /* ─── DIALOGS ─── */
-dialog { background: var(--card); color: var(--ink); border: 1px solid var(--brd); border-radius: 14px; padding: 22px 24px; width: min(500px, 92vw); max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.7); }
+dialog {
+  background: var(--card); color: var(--ink); border: 1px solid var(--brd);
+  border-radius: 14px; padding: 22px 24px; width: min(500px, 92vw);
+  max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.7);
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); margin: 0;
+}
+#ratingDialog { width: min(740px, 97vw); max-height: 94vh; }
+#detailDialog  { width: min(580px, 95vw); }
 dialog::backdrop { background: rgba(8,6,4,.78); backdrop-filter: blur(3px); }
 dialog h3 { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
 dialog label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
@@ -315,3 +322,26 @@ select { background: var(--card2); border: 1px solid var(--brd); color: var(--in
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
 footer { background: var(--nav); border-top: 1px solid var(--brd); color: var(--dim); font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-align: center; padding: 14px; letter-spacing: .06em; }
+
+/* ─── ACTOR RATINGS ─── */
+.actor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.actor-card { background: var(--card2); border: 1px solid var(--brd); border-radius: 8px; padding: 9px 11px; }
+.actor-card.director { border-color: rgba(232,149,42,.4); background: rgba(232,149,42,.04); }
+.actor-name { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 2px; display: flex; align-items: center; gap: 5px; }
+.actor-role { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; color: var(--muted); margin-bottom: 6px; }
+.actor-scores { display: flex; flex-direction: column; gap: 4px; }
+.actor-score-row { display: flex; align-items: center; gap: 6px; }
+.actor-score-who { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); width: 16px; }
+.actor-stars { display: flex; gap: 3px; }
+.astar { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--brd); background: var(--card); cursor: pointer; transition: .1s; display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: var(--dim); }
+.astar.on { background: var(--gold); border-color: var(--gold); color: #111; }
+.astar:hover { border-color: var(--gold); transform: scale(1.12); }
+
+/* actor ranking row */
+.actor-rank-row { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--brd); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 7px; cursor: default; }
+.actor-rank-num { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 800; min-width: 34px; text-align: center; color: var(--dim); }
+.actor-rank-info { flex: 1; min-width: 0; }
+.actor-rank-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+.actor-rank-meta { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--muted); margin-top: 2px; }
+.actor-rank-score { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.actor-avg { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 800; }
