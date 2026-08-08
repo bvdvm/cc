@@ -95,6 +95,7 @@ function allCats(genre)      { return [...BASE_CATS, ...getGenreCats(genre)]; }
 
 function personScore(personRating) {
   if (!personRating?.cats) return null;
+  if (personRating.watched === false) return null;  // nie widziała/ał
   const sum = personRating.cats.reduce((a, b) => a + b, 0);
   return Math.round(sum / 50 * 100);
 }
@@ -139,20 +140,41 @@ async function tmdbDetails(id) {
     return await r.json();
   } catch { return null; }
 }
+const TMDB_IMG_SM = "https://image.tmdb.org/t/p/w185";
 async function getCast(movieId, tmdbId) {
   if (!tmdbId) return null;
   try {
+    // Check Firestore cache — prefer new "people" format
     const snap = await getDoc(doc(COLL.details, String(movieId)));
-    if (snap.exists() && snap.data().cast) {
-      return { cast: snap.data().cast, director: snap.data().director || null };
+    if (snap.exists()) {
+      const d = snap.data();
+      if (d.people?.length) return d.people;
+      // legacy format — migrate on next fresh fetch
     }
-    const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/credits?api_key=${TMDB_KEY}&language=pl-PL`);
+    if (!TMDB_KEY || TMDB_KEY.startsWith("WSTAW")) return null;
+    const r = await fetch(
+      `https://api.themoviedb.org/3/movie/${tmdbId}/credits?api_key=${TMDB_KEY}&language=pl-PL`
+    );
+    if (!r.ok) return null;
     const d = await r.json();
-    const cast = (d.cast || []).slice(0, 8).map(c => c.name);
-    const dir  = (d.crew || []).find(c => c.job === "Director")?.name || null;
-    await setDoc(doc(COLL.details, String(movieId)), { cast, director: dir });
-    return { cast, director: dir };
-  } catch { return null; }
+    const dir = (d.crew || []).find(c => c.job === "Director");
+    const actors = (d.cast || []).slice(0, 7);
+    const people = [
+      ...(dir ? [{
+        name:  dir.name,
+        role:  "director",
+        photo: dir.profile_path ? TMDB_IMG_SM + dir.profile_path : null,
+      }] : []),
+      ...actors.map(a => ({
+        name:  a.name,
+        role:  "actor",
+        photo: a.profile_path ? TMDB_IMG_SM + a.profile_path : null,
+        char:  a.character || null,
+      })),
+    ];
+    await setDoc(doc(COLL.details, String(movieId)), { people, tmdbId });
+    return people;
+  } catch(e) { console.warn("getCast error:", e); return null; }
 }
 
 /* ═══════════════════════════════════════════════
@@ -585,80 +607,95 @@ function renderZasady() {
 ═══════════════════════════════════════════════ */
 let rfState = {
   movieId: null, genre: null, person: "kar", where: "kino",
-  scores: { kar: null, adam: null },
-  actorScores: { kar: {}, adam: {} },  // { "Actor Name": score }
-  castList: [],  // [{name, role}] fetched from TMDB
+  watchDate: new Date().toISOString().slice(0,10),
+  scores:       { kar: Array(10).fill(3), adam: Array(10).fill(3) },
+  personWatched:{ kar: true, adam: true },   // false = nie widziała/ał jeszcze
+  castList:     [],
 };
 
 async function openRating(movieId) {
   const film = MOVIES[movieId] || WATCHLIST[movieId];
   if (!film) return;
-  const r    = RATINGS[movieId];
-  const genre= film.genre || "";
+  const r     = RATINGS[movieId];
+  const genre = film.genre || "";
   rfState = {
     movieId, genre,
-    person: "kar",
-    where:  r?.kar?.where || r?.adam?.where || "kino",
+    person:        "kar",
+    where:         r?.kar?.where || r?.adam?.where || "kino",
+    watchDate:     r?.kar?.watchDate || r?.adam?.watchDate || new Date().toISOString().slice(0,10),
     scores: {
       kar:  r?.kar?.cats  ? [...r.kar.cats]  : Array(10).fill(3),
       adam: r?.adam?.cats ? [...r.adam.cats] : Array(10).fill(3),
     },
-    actorScores: {
-      kar:  r?.kar?.actorScores  ? {...r.kar.actorScores}  : {},
-      adam: r?.adam?.actorScores ? {...r.adam.actorScores} : {},
+    personWatched: {
+      kar:  r?.kar?.watched  !== false,
+      adam: r?.adam?.watched !== false,
     },
-    castList: rfState.castList && rfState._lastMovieId === movieId ? rfState.castList : [],
+    castList: rfState._lastMovieId === movieId && rfState.castList?.length ? rfState.castList : [],
   };
   rfState._lastMovieId = movieId;
   document.getElementById("ratingTitle").textContent = "Oceń: " + film.title;
   renderRFBody(film, allCats(genre));
   document.getElementById("ratingDialog").showModal();
-  // async: fetch cast — spróbuj po tmdbId, a jak brak to szukaj po tytule
+  // async: pobierz obsadę (spróbuj po tmdbId, jeśli brak — szukaj po tytule)
   if (!rfState.castList.length) {
-    let resolvedTmdbId = film.tmdbId || null;
-    // jeśli film z kina (brak tmdbId), szukaj po tytule
-    if (!resolvedTmdbId && TMDB_KEY && !TMDB_KEY.startsWith("WSTAW")) {
+    let tid = film.tmdbId || null;
+    if (!tid && TMDB_KEY && !TMDB_KEY.startsWith("WSTAW")) {
       try {
         const sr = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&language=pl-PL&query=${encodeURIComponent(film.title)}`);
         const sd = await sr.json();
-        resolvedTmdbId = sd.results?.[0]?.id || null;
-        // zapisz tmdbId w movies żeby następnym razem było gotowe
-        if (resolvedTmdbId && MOVIES[movieId]) {
-          updateDoc(doc(COLL.movies, movieId), { tmdbId: resolvedTmdbId }).catch(()=>{});
-        }
+        tid = sd.results?.[0]?.id || null;
+        if (tid && MOVIES[movieId]) updateDoc(doc(COLL.movies, movieId), { tmdbId: tid }).catch(()=>{});
       } catch(_e) {}
     }
-    if (resolvedTmdbId) {
-      const castData = await getCast(movieId, resolvedTmdbId);
-      if (castData) {
-        rfState.castList = [
-          ...(castData.director ? [{name: castData.director, role: "Reżyseria"}] : []),
-          ...(castData.cast || []).slice(0, 6).map(n => ({name: n, role: "Aktor/ka"})),
-        ];
-        rfState._lastMovieId = movieId;
-        const sect = document.getElementById("actor-section");
-        if (sect) sect.innerHTML = buildActorSection();
-      } else {
-        const sect = document.getElementById("actor-section");
-        if (sect) sect.innerHTML = '<div class="sr-hint">Nie udało się pobrać obsady z TMDB.</div>';
-      }
-    } else {
-      const sect = document.getElementById("actor-section");
-      if (sect) sect.innerHTML = '<div class="sr-hint">Brak danych obsady — film nie jest połączony z TMDB.<br>Dodaj go przez wyszukiwarkę (+ Oceń film) żeby połączyć.</div>';
+    if (tid) {
+      const castData = await getCast(movieId, tid);
+      rfState.castList = Array.isArray(castData) ? castData : [];
     }
+    rfState._lastMovieId = movieId;
+    const sect = document.getElementById("cast-section");
+    if (sect) sect.innerHTML = buildCastSection();
   }
 }
 
+/* ─── cast display (read-only, ze zdjęciami) ─── */
+function buildCastSection() {
+  const cast = rfState.castList;
+  if (!cast.length) return '<div class="sr-hint">Ładowanie obsady z TMDB…</div>';
+  return `<div class="cast-display">${cast.map(({name, role, photo, char}) => {
+    const isDir = role === "director";
+    const label = isDir ? "Reżyseria" : (char ? char.slice(0, 20) : "Aktor/ka");
+    return `<div class="cast-person">
+      ${photo
+        ? `<img src="${esc(photo)}" class="cast-photo" alt="${esc(name)}"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : ""}
+      <div class="cast-avatar"${photo?" style='display:none'":""}>${isDir ? "🎬" : "🎭"}</div>
+      <div class="cast-name">${esc(name)}</div>
+      <div class="cast-role">${esc(label)}</div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+/* ─── renderRFBody ─── */
 function renderRFBody(film, cats) {
-  const { person, where, scores, movieId } = rfState;
-  const sc = scores[person];
-  const kT = scores.kar.reduce((a,b)=>a+b,0);
-  const aT = scores.adam.reduce((a,b)=>a+b,0);
-  const kP = Math.round(kT / 50 * 100);
-  const aP = Math.round(aT / 50 * 100);
-  const jP = Math.round((kP + aP) / 2);
-  const lv = getLv(jP), klv = getLv(kP), alv = getLv(aP);
-  const r  = RATINGS[movieId];
+  const { person, where, scores, movieId, personWatched, watchDate } = rfState;
+  const sc   = scores[person];
+  const seen = personWatched[person];
+
+  // oblicz procenty tylko dla osób, które widziały
+  function calcPct(p) {
+    if (!personWatched[p]) return null;
+    return Math.round(scores[p].reduce((a,b)=>a+b,0) / 50 * 100);
+  }
+  const kP  = calcPct("kar");
+  const aP  = calcPct("adam");
+  const valid = [kP, aP].filter(v => v !== null);
+  const jP   = valid.length ? Math.round(valid.reduce((a,b)=>a+b,0)/valid.length) : 0;
+  const lv   = getLv(jP);
+  const klv  = kP !== null ? getLv(kP) : null;
+  const alv  = aP !== null ? getLv(aP) : null;
+  const r    = RATINGS[movieId];
 
   document.getElementById("ratingForm").innerHTML = `
     <div class="rf-hd">
@@ -671,16 +708,46 @@ function renderRFBody(film, cats) {
         <div class="rf-gnote">+2 kategorie gatunkowe: ${esc((cats[8]||"")+" · "+(cats[9]||""))}</div>
       </div>
     </div>
-    <div class="rf-section-label">Gdzie oglądaliśmy:</div>
-    <div class="rf-where">
-      <button class="rf-where-btn ${where==="kino"?"active":""}" onclick="rfSetWhere('kino')">🎟️ Kino</button>
-      <button class="rf-where-btn ${where==="dom"?"active":""}" onclick="rfSetWhere('dom')">🏠 Dom</button>
+
+    <!-- Gdzie i kiedy -->
+    <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
+      <div>
+        <div class="rf-section-label" style="margin-bottom:6px">Gdzie oglądaliśmy:</div>
+        <div class="rf-where" style="margin-bottom:0">
+          <button class="rf-where-btn ${where==="kino"?"active":""}" onclick="rfSetWhere('kino')">🎟️ Kino</button>
+          <button class="rf-where-btn ${where==="dom"?"active":""}" onclick="rfSetWhere('dom')">🏠 Dom</button>
+        </div>
+      </div>
+      <div>
+        <div class="rf-section-label" style="margin-bottom:6px">Data obejrzenia:</div>
+        <input type="date" id="rf-watch-date" value="${watchDate}"
+          style="background:var(--card2);border:1px solid var(--brd);border-radius:7px;color:var(--ink);padding:7px 10px;font-size:13px;font-family:'IBM Plex Mono',monospace"
+          onchange="rfState.watchDate=this.value">
+      </div>
     </div>
-    <div class="rf-ptabs">
-      <button class="rf-ptab ${person==="kar"?"active":""}" onclick="rfSetPerson('kar')">💛 Karolina</button>
-      <button class="rf-ptab ${person==="adam"?"active":""}" onclick="rfSetPerson('adam')">💙 Adam</button>
+
+    <!-- Zakładki osób + toggle nie widziałam/em -->
+    <div class="rf-ptabs" style="flex-wrap:wrap;gap:6px;margin-bottom:8px">
+      <button class="rf-ptab ${person==="kar"?"active":""} ${!personWatched.kar?"not-seen":""}"
+        onclick="rfSetPerson('kar')">
+        💛 Karolina${!personWatched.kar?" · nie widziała":""}
+      </button>
+      <button class="rf-ptab ${person==="adam"?"active":""} ${!personWatched.adam?"not-seen":""}"
+        onclick="rfSetPerson('adam')">
+        💙 Adam${!personWatched.adam?" · nie widział":""}
+      </button>
     </div>
-    <div class="cats-grid">
+    <div style="margin-bottom:14px">
+      <button class="rf-seen-toggle ${seen?"seen":"notseen"}"
+        onclick="rfSetWatched('${person}', ${!seen})">
+        ${seen
+          ? `✓ ${person==="kar"?"Karolina widziała":"Adam widział"} · kliknij żeby cofnąć`
+          : `${person==="kar"?"Karolina":"Adam"} nie widział/a jeszcze · kliknij żeby ocenić`}
+      </button>
+    </div>
+
+    <!-- Kategorie (tylko jeśli osoba widziała) -->
+    ${seen ? `<div class="cats-grid">
       ${cats.map((c, i) => `
         <div class="cat-card ${i >= 8 ? "genre" : ""}">
           <div class="cat-name">${esc(c)}${i>=8?'<span class="gtag"> · gatunkowa</span>':""}</div>
@@ -688,55 +755,76 @@ function renderRFBody(film, cats) {
             `<div class="star ${sc[i]>=n?"on":""}" onclick="rfSetStar(${i},${n})">${n}</div>`).join("")}
           </div>
         </div>`).join("")}
+    </div>` : `<div class="rf-not-seen-info">
+      Kategorie będą dostępne po obejrzeniu.<br>
+      Zapisz teraz — oceny można uzupełnić później.
+    </div>`}
+
+    <!-- Obsada (read-only) -->
+    <div style="margin-bottom:14px">
+      <div class="rf-section-label" style="margin-bottom:8px">Obsada</div>
+      <div id="cast-section">${buildCastSection()}</div>
     </div>
-    <!-- Oceń obsadę -->
-    <div style="margin-bottom:12px">
-      <div class="rf-section-label" style="margin-bottom:8px">Oceń obsadę (1–5)</div>
-      <div class="actor-grid" id="actor-section">${buildActorSection()}</div>
-    </div>
+
+    <!-- Panel wynik -->
     <div class="rf-score-panel">
       <div class="rf-icon-area">
-        ${pcSVG(lv.key, 58)}
-        <div class="rf-big-pct" style="color:${lv.color}">${jP}%</div>
-        <div class="rf-level-name" style="color:${lv.color}">${lv.name}</div>
+        ${valid.length ? pcSVG(lv.key, 54) : '<div style="font-size:36px">🎬</div>'}
+        <div class="rf-big-pct" style="color:${valid.length?lv.color:"var(--dim)"}">
+          ${valid.length ? jP+"%" : "–"}
+        </div>
+        <div class="rf-level-name" style="color:${valid.length?lv.color:"var(--dim)"}">
+          ${valid.length ? lv.name : "Brak ocen"}
+        </div>
       </div>
       <div class="rf-bars">
         <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px">Karolina vs Adam</div>
         <div class="rf-bar-row">
           <span class="rf-bar-label">💛 Karolina</span>
-          <div class="rf-bar-bg"><div class="rf-bar-fill" style="width:${kP}%;background:${klv.color}"></div></div>
-          <span class="rf-bar-pct" style="color:${klv.color}">${kP}%</span>
+          ${kP !== null
+            ? `<div class="rf-bar-bg"><div class="rf-bar-fill" style="width:${kP}%;background:${klv.color}"></div></div>
+               <span class="rf-bar-pct" style="color:${klv.color}">${kP}%</span>`
+            : `<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">nie widziała</span>`}
         </div>
         <div class="rf-bar-row">
           <span class="rf-bar-label">💙 Adam</span>
-          <div class="rf-bar-bg"><div class="rf-bar-fill" style="width:${aP}%;background:${alv.color}"></div></div>
-          <span class="rf-bar-pct" style="color:${alv.color}">${aP}%</span>
+          ${aP !== null
+            ? `<div class="rf-bar-bg"><div class="rf-bar-fill" style="width:${aP}%;background:${alv.color}"></div></div>
+               <span class="rf-bar-pct" style="color:${alv.color}">${aP}%</span>`
+            : `<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">nie widział</span>`}
         </div>
-        <div class="rf-where-summary">Suma: <b style="color:${lv.color}">${kT+aT}/100 pkt</b> · ${where==="kino"?"🎟️ Kino":"🏠 Dom"}</div>
-        <div class="rf-pc-row">
-          ${LEVELS.map(l=>`<div class="rf-pc-item">${pcSVG(l.key,18)}<span class="rf-pc-range" style="color:${l.color}">${l.min}–${l.max}%</span></div>`).join("")}
+        <div class="rf-where-summary">
+          ${where==="kino"?"🎟️ Kino":"🏠 Dom"} · ${watchDate}
+          ${valid.length < 2 ? " · ocena częściowa" : ""}
         </div>
       </div>
     </div>
+
     <!-- Notatki -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;margin-top:12px">
       <div>
         <div class="rf-section-label" style="margin-bottom:4px">Notatka Karoliny</div>
-        <input id="note-kar-short" type="text" maxlength="80" placeholder="Krótka (na karcie)…" style="background:var(--card2);border:1px solid var(--brd);border-radius:6px;color:var(--ink);padding:7px 9px;font-size:12px;width:100%" value="${esc(r?.kar?.noteShort||"")}">
+        <input id="note-kar-short" type="text" maxlength="80" placeholder="Krótka (na karcie)…"
+          style="background:var(--card2);border:1px solid var(--brd);border-radius:6px;color:var(--ink);padding:7px 9px;font-size:12px;width:100%"
+          value="${esc(r?.kar?.noteShort||"")}">
       </div>
       <div>
         <div class="rf-section-label" style="margin-bottom:4px">Notatka Adama</div>
-        <input id="note-adam-short" type="text" maxlength="80" placeholder="Krótka (na karcie)…" style="background:var(--card2);border:1px solid var(--brd);border-radius:6px;color:var(--ink);padding:7px 9px;font-size:12px;width:100%" value="${esc(r?.adam?.noteShort||"")}">
+        <input id="note-adam-short" type="text" maxlength="80" placeholder="Krótka (na karcie)…"
+          style="background:var(--card2);border:1px solid var(--brd);border-radius:6px;color:var(--ink);padding:7px 9px;font-size:12px;width:100%"
+          value="${esc(r?.adam?.noteShort||"")}">
       </div>
     </div>
     <!-- Saga -->
-    <div style="margin-bottom:10px">
+    <div style="margin-bottom:12px">
       <div class="rf-section-label" style="margin-bottom:4px">Saga / Uniwersum (opcjonalnie)</div>
-      <input id="rf-saga" type="text" placeholder="np. Marvel, Star Wars, Diuna…" style="background:var(--card2);border:1px solid var(--brd);border-radius:6px;color:var(--ink);padding:7px 9px;font-size:12px;width:100%" value="${esc(film.saga||"")}">
+      <input id="rf-saga" type="text" placeholder="np. Marvel, Star Wars, Diuna…"
+        style="background:var(--card2);border:1px solid var(--brd);border-radius:6px;color:var(--ink);padding:7px 9px;font-size:12px;width:100%"
+        value="${esc(film.saga||"")}">
     </div>
     <div class="dialog-actions">
       <button class="btn" onclick="document.getElementById('ratingDialog').close()">Anuluj</button>
-      <button class="btn btn-primary" onclick="saveRating()">Zapisz oceny</button>
+      <button class="btn btn-primary" onclick="saveRating()">Zapisz</button>
     </div>`;
 }
 
@@ -744,63 +832,30 @@ function rfRerender() {
   const f = MOVIES[rfState.movieId] || WATCHLIST[rfState.movieId];
   if (f) renderRFBody(f, allCats(rfState.genre));
 }
-function buildActorSection() {
-  const cast = rfState.castList;
-  if (!cast.length) return '<div class="sr-hint" style="padding:8px 0">Wczytywanie obsady z TMDB…</div>';
-  const { person, actorScores } = rfState;
-  const sc = actorScores[person] || {};
-  return cast.map(({name, role}) => {
-    const cur = sc[name] || 0;
-    const isDir = role === "Reżyseria";
-    return `<div class="actor-card ${isDir?"director":""}">
-      <div class="actor-name">${isDir ? "🎬" : "🎭"} ${esc(name)}</div>
-      <div class="actor-role">${esc(role)}</div>
-      <div class="actor-scores">
-        ${["kar","adam"].map(who => {
-          const wsc = rfState.actorScores[who]?.[name] || 0;
-          return `<div class="actor-score-row">
-            <span class="actor-score-who">${who === "kar" ? "💛" : "💙"}</span>
-            <div class="actor-stars">${[1,2,3,4,5].map(n =>
-              `<div class="astar ${wsc >= n ? "on" : ""}" data-aname="${esc(name)}" data-awho="${who}" data-a-n="${n}"
-                onclick="rfSetActor('${esc(name).replace(/'/g,"\\'")}','${who}',${n})">${n}</div>`
-            ).join("")}</div>
-          </div>`;
-        }).join("")}
-      </div>
-    </div>`;
-  }).join("");
-}
 
 window.rfSetStar    = (i, n) => { rfState.scores[rfState.person][i] = n; rfRerender(); };
 window.rfSetPerson  = (p)    => { rfState.person = p; rfRerender(); };
 window.rfSetWhere   = (w)    => { rfState.where  = w; rfRerender(); };
-window.rfSetActor   = (name, who, n) => {
-  rfState.actorScores[who] = rfState.actorScores[who] || {};
-  rfState.actorScores[who][name] = n;
-  // update dots visually without full rerender
-  document.querySelectorAll(`[data-aname="${CSS.escape(name)}"][data-awho="${who}"]`).forEach(el => {
-    el.classList.toggle("on", parseInt(el.dataset.aN) <= n);
-  });
-};
+window.rfSetWatched = window.rfSetWatched || ((p,v) => { rfState.personWatched[p]=v; rfRerender(); });
+window.rfSetWatched = (p, v) => { rfState.personWatched[p] = v; rfRerender(); };
 
 async function saveRating() {
-  const { movieId, where, scores } = rfState;
+  const { movieId, where, scores, personWatched, watchDate } = rfState;
   const film = MOVIES[movieId] || WATCHLIST[movieId];
   if (!film) return;
   const noteKarShort  = document.getElementById("note-kar-short")?.value.trim()  || null;
   const noteAdamShort = document.getElementById("note-adam-short")?.value.trim() || null;
   const saga          = document.getElementById("rf-saga")?.value.trim() || null;
+  const wd            = rfState.watchDate || new Date().toISOString().slice(0,10);
 
   await setDoc(doc(COLL.ratings, movieId), {
-    kar:  { cats: scores.kar,  where, noteShort: noteKarShort,  actorScores: rfState.actorScores.kar  || {} },
-    adam: { cats: scores.adam, where, noteShort: noteAdamShort, actorScores: rfState.actorScores.adam || {} },
+    kar:  { cats: scores.kar,  where, watchDate: wd, watched: personWatched.kar,  noteShort: noteKarShort  },
+    adam: { cats: scores.adam, where, watchDate: wd, watched: personWatched.adam, noteShort: noteAdamShort },
   });
-  // uaktualnij sagę w movies
-  if (saga !== null || (film.saga !== undefined && saga !== film.saga)) {
+  if (saga !== null) {
     await updateDoc(doc(COLL.movies, movieId), { saga: saga || null }).catch(() =>
       setDoc(doc(COLL.movies, movieId), { ...film, saga: saga || null }));
   }
-  // przenieś z watchlist do movies jeśli tam był
   if (WATCHLIST[movieId]) await addToMovies(film);
   document.getElementById("ratingDialog").close();
 }
@@ -1015,7 +1070,6 @@ window.openRating = openRating;
 window.rfSetStar  = rfSetStar;
 window.rfSetPerson= rfSetPerson;
 window.rfSetWhere = rfSetWhere;
-window.rfSetActor = rfSetActor;
 
 /* ═══════════════════════════════════════════════
    REPERTUAR Z data/films.json
