@@ -1,858 +1,896 @@
 "use strict";
 import { firebaseConfig, TMDB_KEY } from "./config.js";
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import {
-  getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc,
+  getFirestore, collection, doc,
+  setDoc, deleteDoc, updateDoc,
+  onSnapshot, getDoc,
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
-/* ============================================================
-   FIREBASE INIT + WSPÓŁDZIELONY STAN (zamiast localStorage)
-   ============================================================ */
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+/* ═══════════════════════════════════════════════
+   FIREBASE INIT
+═══════════════════════════════════════════════ */
+const fbApp = initializeApp(firebaseConfig);
+const db    = getFirestore(fbApp);
 
-const stateCol   = collection(db, "state");
-const manualCol  = collection(db, "manualFilms");
-const tvCol      = collection(db, "tvShows");
-const favKarCol  = collection(db, "favKar");   // ulubione Karoliny
-const favAdamCol = collection(db, "favAdam");  // ulubione Adama
-const snackCol   = collection(db, "snacks");       // przekąski
-const detailsCol = collection(db, "filmDetails");  // cache obsady (TMDB)
-const poolDocRef = (person) => doc(db, "pool", person);
-
-let STATE = {}, MANUAL = {}, TV = {}, FAV_KAR = {}, FAV_ADAM = {}, SNACKS = {}, POOL = { karolina: [], adam: [] };
-let firebaseReady = false;
-
-function defaultState(){
-  return {watched:false, want:false, kar:null, adam:null, ads:null, saga:null,
-          karNoteShort:null, karNoteLong:null, adamNoteShort:null, adamNoteLong:null};
-}
-function stateFor(id){ return Object.assign(defaultState(), STATE[id]||{}); }
-
-function setFilmState(id, partial){
-  setDoc(doc(stateCol, id), partial, {merge:true}).catch(err=>{
-    alert("Błąd zapisu do bazy (sprawdź config.js i reguły Firestore): " + err.message);
-  });
-}
-async function addManualFilm(month, film){ await setDoc(doc(manualCol, film.id), {...film, month}); }
-async function deleteManualFilm(id){
-  await deleteDoc(doc(manualCol, id)).catch(()=>{});
-  await deleteDoc(doc(stateCol, id)).catch(()=>{});
-}
-async function addTvShow(show){ await setDoc(doc(tvCol, show.id), show); }
-async function deleteTvShow(id){
-  await deleteDoc(doc(tvCol, id)).catch(()=>{});
-  await deleteDoc(doc(stateCol, id)).catch(()=>{});
-}
-async function addFavorite(person, film){
-  const col = person==="karolina" ? favKarCol : favAdamCol;
-  await setDoc(doc(col, film.id), film);
-}
-async function deleteFavorite(person, id){
-  const col = person==="karolina" ? favKarCol : favAdamCol;
-  await deleteDoc(doc(col, id)).catch(()=>{});
-  await deleteDoc(doc(stateCol, id)).catch(()=>{});
-}
-async function addSnack(snack){ await setDoc(doc(snackCol, snack.id), snack); }
-async function deleteSnack(id){
-  await deleteDoc(doc(snackCol, id)).catch(()=>{});
-  await deleteDoc(doc(stateCol, id)).catch(()=>{});
-}
-async function addToPool(person, item){
-  const cur = POOL[person] || [];
-  if(cur.length >= 30){ alert(`Pula (${person === "karolina" ? "Karolina" : "Adam"}) jest pełna — 30/30. Usuń coś, żeby dodać kolejny.`); return; }
-  if(cur.some(x=>x.id===item.id)){ alert("Ten film jest już w tej puli."); return; }
-  await setDoc(poolDocRef(person), { items: [...cur, item] });
-}
-async function removeFromPool(person, id){
-  await setDoc(poolDocRef(person), { items: (POOL[person]||[]).filter(x=>x.id!==id) });
-}
-
-onSnapshot(stateCol, snap=>{
-  const next={}; snap.forEach(d=>next[d.id]=d.data()); STATE=next;
-  firebaseReady = true; renderCurrentView();
-}, err=>showFirebaseError(err));
-onSnapshot(manualCol, snap=>{
-  const next={}; snap.forEach(d=>next[d.id]={id:d.id, ...d.data()}); MANUAL=next; renderCurrentView();
-}, err=>showFirebaseError(err));
-onSnapshot(tvCol, snap=>{
-  const next={}; snap.forEach(d=>next[d.id]={id:d.id, ...d.data()}); TV=next; renderCurrentView();
-}, err=>showFirebaseError(err));
-onSnapshot(favKarCol, snap=>{
-  const next={}; snap.forEach(d=>next[d.id]={id:d.id, ...d.data()}); FAV_KAR=next; renderCurrentView();
-}, err=>showFirebaseError(err));
-onSnapshot(favAdamCol, snap=>{
-  const next={}; snap.forEach(d=>next[d.id]={id:d.id, ...d.data()}); FAV_ADAM=next; renderCurrentView();
-}, err=>showFirebaseError(err));
-onSnapshot(snackCol, snap=>{
-  const next={}; snap.forEach(d=>next[d.id]={id:d.id, ...d.data()}); SNACKS=next; renderCurrentView();
-}, err=>showFirebaseError(err));
-onSnapshot(poolDocRef("karolina"), d=>{ POOL.karolina = d.exists() ? (d.data().items||[]) : []; renderCurrentView(); }, err=>showFirebaseError(err));
-onSnapshot(poolDocRef("adam"), d=>{ POOL.adam = d.exists() ? (d.data().items||[]) : []; renderCurrentView(); }, err=>showFirebaseError(err));
-
-let fbErrorShown = false;
-function showFirebaseError(err){
-  if(fbErrorShown) return; fbErrorShown = true;
-  document.getElementById("updated").textContent =
-    "Błąd połączenia z Firebase — sprawdź config.js i reguły Firestore. (" + err.message + ")";
-}
-
-/* ============================================================
-   REPERTUAR Z data/films.json (statyczny, niezależny od Firebase)
-   ============================================================ */
-let DB = {months:{}, showtimes:{}, updated:null};
-const START_MONTH = "2026-01";
-const PEOPLE = [["kar","Karolina"],["adam","Adam"]];
-let currentMonth = null;
-
-function monthFilms(m){
-  const out = Object.assign({}, DB.months[m]?.films ?? {});
-  for(const f of Object.values(MANUAL)) if(f.month === m) out[f.id] = f;
-  return out;
-}
-function allMonthKeys(){
-  const manualMonths = Object.values(MANUAL).map(f=>f.month).filter(Boolean);
-  return [...new Set([...Object.keys(DB.months), ...manualMonths])];
-}
-function collectAllFilmEntries(){
-  const byId = new Map();
-  for(const m of allMonthKeys()){
-    for(const f of Object.values(monthFilms(m))){
-      if(!byId.has(f.id)) byId.set(f.id, {film:f, months:[]});
-      byId.get(f.id).months.push(m);
-    }
-  }
-  return [...byId.values()];
-}
-
-/* ---------- helpers ---------- */
-function monthRange(){
-  const out = []; const now = new Date();
-  let end = now.getFullYear()*12 + now.getMonth();
-  for(const m of allMonthKeys()){ const [y,mo]=m.split("-").map(Number); end=Math.max(end, y*12+(mo-1)); }
-  const [sy,sm] = START_MONTH.split("-").map(Number);
-  for(let i = sy*12+(sm-1); i <= end; i++) out.push(`${Math.floor(i/12)}-${String(i%12+1).padStart(2,"0")}`);
-  return out;
-}
-const MONTH_NAMES = ["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","sierpień","wrzesień","październik","listopad","grudzień"];
-function monthLabel(m){ const [y,mo]=m.split("-"); return `${MONTH_NAMES[+mo-1]} '${y.slice(2)}`; }
-function isCurrentMonth(m){ const n=new Date(); return m===`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}`; }
-function avg(s){ const v=[s.kar,s.adam].filter(x=>x!==null&&x!==""&&!isNaN(x)).map(Number); if(!v.length) return null; return v.reduce((a,b)=>a+b,0)/v.length; }
-function fmtAvg(a){ return a===null||a===undefined ? "–" : (Math.round(a*10)/10).toLocaleString("pl-PL"); }
-function esc(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
-function fmtDt(iso){ const d=new Date(iso); if(isNaN(d)) return iso;
-  return d.toLocaleDateString("pl-PL",{weekday:"short",day:"numeric",month:"numeric"})+" "+d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"}); }
-
-/* ---------- kolory i poziomy ocen (1=czerwony … 10=zielony) ---------- */
-const SCORE_LEVELS = {
-  1:"Matcha Popcorn", 2:"Przykry Film", 3:"Dramat", 4:"Ujdzie W Tłoku", 5:"Średniawka",
-  6:"Całkiem OK", 7:"Niezły", 8:"Klasa", 9:"Mega", 10:"Absolutne Kino",
+const COLL = {
+  movies:   collection(db, "kMovies"),    // baza filmów
+  ratings:  collection(db, "kRatings"),   // oceny per film
+  watchlist:collection(db, "kWatchlist"), // do obejrzenia
+  details:  collection(db, "kDetails"),   // cache obsady z TMDB
 };
-function scoreColor(v){
-  if(v===null||v===undefined) return null;
-  const c = Math.max(1, Math.min(10, Number(v)));
-  const hue = (c-1)/9*120; // 0=czerwony, 120=zielony
-  return `hsl(${hue.toFixed(0)} 72% 45%)`;
-}
-function scoreLevel(v){
-  if(v===null||v===undefined) return null;
-  const r = Math.max(1, Math.min(10, Math.round(Number(v))));
-  return SCORE_LEVELS[r];
-}
 
-/* ---------- znajdź film/serial/ulubiony/przekąskę po id (do modala szczegółów) ---------- */
-function findAnyItem(id, kind){
-  if(kind==="tv") return TV[id];
-  if(kind==="fav-kar") return FAV_KAR[id];
-  if(kind==="fav-adam") return FAV_ADAM[id];
-  if(kind==="snack") return SNACKS[id];
-  if(MANUAL[id]) return MANUAL[id];
-  for(const m of allMonthKeys()){ const f = monthFilms(m)[id]; if(f) return f; }
-  return null;
+let MOVIES   = {};  // id → film
+let RATINGS  = {};  // id → { kar:{cats,where,noteShort,noteLong}, adam:{...} }
+let WATCHLIST = {}; // id → film
+let DB_FILMS  = { months:{}, showtimes:{}, updated:null }; // data/films.json
+
+let fbError = false;
+function showFbError(e) {
+  if (fbError) return;
+  fbError = true;
+  document.getElementById("firebase-error").style.display = "block";
+  document.getElementById("firebase-error").textContent =
+    "⚠️ Błąd Firebase: " + e.message + " — sprawdź config.js i reguły Firestore.";
 }
 
-/* ============================================================
-   TICKET CARD (wspólny dla filmów i seriali)
-   ============================================================ */
-function ticketHTML(film, st, opts={}){
-  const {showShows=false, showAds=true, showSaga=true, kind="film"} = opts;
-  const a = avg(st);
-  const color = scoreColor(a);
-  const poster = film.poster
-    ? `<img src="${esc(film.poster)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=ph>🎬</div>'">`
-    : `<div class="ph">🎬</div>`;
+onSnapshot(COLL.movies,   s => { MOVIES   = {}; s.forEach(d => MOVIES[d.id]   = d.data()); renderCurrentView(); }, showFbError);
+onSnapshot(COLL.ratings,  s => { RATINGS  = {}; s.forEach(d => RATINGS[d.id]  = d.data()); renderCurrentView(); }, showFbError);
+onSnapshot(COLL.watchlist,s => { WATCHLIST= {}; s.forEach(d => WATCHLIST[d.id]= d.data()); renderCurrentView(); }, showFbError);
 
-  let shows = "";
-  if(showShows){
-    const evs = (DB.showtimes[film.id]||[]).slice()
-      .sort((x,y)=>String(x.dt).localeCompare(String(y.dt)))
-      .filter(e=>new Date(e.dt) > new Date()).slice(0,4);
-    if(evs.length){
-      shows = `<div class="shows"><div class="sh-label">Najbliższe pokazy</div><ul>` +
-        evs.map(e=>`<li><span class="when">${esc(fmtDt(e.dt))}</span><span>${esc(e.cinema.replace("Poznań ",""))}</span>
-          ${(e.attrs||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</li>`).join("") + `</ul></div>`;
-    }
-  }
-  const sagaPill = showSaga
-    ? (st.saga
-        ? `<button class="t-saga" data-act="saga">🏷️ ${esc(st.saga)}</button>`
-        : `<button class="t-saga" data-act="saga">+ saga</button>`)
-    : "";
-  const notesLine = (st.karNoteShort || st.adamNoteShort) ? `<div class="t-notes">
-      ${st.karNoteShort?`<span class="note k">K: ${esc(st.karNoteShort)}</span>`:""}
-      ${st.adamNoteShort?`<span class="note a">A: ${esc(st.adamNoteShort)}</span>`:""}
-    </div>` : "";
+/* ═══════════════════════════════════════════════
+   POPCORN / OCENY
+═══════════════════════════════════════════════ */
+const LEVELS = [
+  { key:"matcha", name:"Matcha Popcorn",    min:0,  max:29,  c1:"#3D9E52", c2:"#2D8040", bc:"#D42B2B", color:"#3D9E52" },
+  { key:"kar",    name:"Karmelowy Popcorn", min:30, max:49,  c1:"#C87820", c2:"#9E5C10", bc:"#D42B2B", color:"#C87820" },
+  { key:"sol",    name:"Solony Popcorn",    min:50, max:79,  c1:"#DDD5B8", c2:"#C4B896", bc:"#D42B2B", color:"#BDB09A" },
+  { key:"boski",  name:"Boski Popcorn",     min:80, max:100, c1:"#F5C45A", c2:"#E8952A", bc:"#E8952A", color:"#E8952A" },
+];
+function getLv(pct) { return LEVELS.find(l => pct >= l.min && pct <= l.max) || LEVELS[0]; }
 
-  return `
-  <article class="ticket ${st.watched?"watched":""} ${st.want&&!st.watched?"wanted":""}"
-    data-id="${esc(film.id)}" data-kind="${kind}">
-    <div class="poster" data-act="details">
+function pcSVG(key, sz = 36) {
+  const l = LEVELS.find(x => x.key === key) || LEVELS[0];
+  const w = sz, h = sz;
+  const rays = key === "boski" ? [...Array(8)].map((_, i) => {
+    const a = i * 45 * Math.PI / 180, r1 = w * .4, r2 = w * .53;
+    return `<line x1="${(w/2+Math.cos(a)*r1).toFixed(1)}" y1="${(h*.28+Math.sin(a)*r1).toFixed(1)}" x2="${(w/2+Math.cos(a)*r2).toFixed(1)}" y2="${(h*.28+Math.sin(a)*r2).toFixed(1)}" stroke="${l.c2}" stroke-width="1.5" stroke-linecap="round"/>`;
+  }).join("") : "";
+  const f = (n) => n.toFixed(1);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${rays}
+    <ellipse cx="${f(w*.34)}" cy="${f(h*.25)}" rx="${f(w*.13)}" ry="${f(w*.12)}" fill="${l.c1}"/>
+    <ellipse cx="${f(w*.54)}" cy="${f(h*.21)}" rx="${f(w*.15)}" ry="${f(w*.14)}" fill="${l.c2}"/>
+    <ellipse cx="${f(w*.7)}"  cy="${f(h*.26)}" rx="${f(w*.12)}" ry="${f(w*.11)}" fill="${l.c1}"/>
+    <ellipse cx="${f(w*.2)}"  cy="${f(h*.3)}"  rx="${f(w*.11)}" ry="${f(w*.1)}"  fill="${l.c2}"/>
+    <ellipse cx="${f(w*.48)}" cy="${f(h*.33)}" rx="${f(w*.12)}" ry="${f(w*.11)}" fill="${l.c1}"/>
+    <path d="M${f(w*.18)} ${f(h*.43)} L${f(w*.25)} ${f(h*.85)} L${f(w*.75)} ${f(h*.85)} L${f(w*.82)} ${f(h*.43)} Z" fill="${l.bc}"/>
+    <rect x="${f(w*.18)}" y="${f(h*.41)}" width="${f(w*.64)}" height="${f(h*.06)}" rx="2" fill="${l.c1}"/>
+    <rect x="${f(w*.29)}" y="${f(h*.43)}" width="${f(w*.08)}" height="${f(h*.42)}" fill="#fff" opacity=".3"/>
+    <rect x="${f(w*.63)}" y="${f(h*.43)}" width="${f(w*.08)}" height="${f(h*.42)}" fill="#fff" opacity=".3"/>
+  </svg>`;
+}
+
+// 8 kategorii bazowych
+const BASE_CATS = [
+  "Fabuła / Historia", "Oryginalność", "Plot twist", "Bohaterowie",
+  "Gra aktorska", "Emocje / Wrażenia", "Moralność / Przesłanie", "Pamięć po obejrzeniu"
+];
+// 2 kategorie gatunkowe per gatunek
+const GENRE_CATS = {
+  "Akcja":       ["Choreografia i widowiskowość akcji",   "Tempo i dynamika narracji"],
+  "Animacja":    ["Jakość animacji i strona wizualna",    "Przekaz dla różnych grup wiekowych"],
+  "Dokumentalny":["Wartość informacyjna",                 "Obiektywizm i rzetelność przekazu"],
+  "Dramat":      ["Głębia emocjonalna",                   "Realizm i wiarygodność sytuacji"],
+  "Fantasy":     ["Kreacja i oryginalność świata",        "Magia i elementy fantastyczne"],
+  "Horror":      ["Atmosfera grozy i klimat napięcia",    "Skuteczność jumpscary i suspensu"],
+  "Komedia":     ["Humor i śmieszność",                   "Lekkość klimatu rozrywki"],
+  "Romans":      ["Chemia między postaciami",             "Emocjonalność i przekonujący romans"],
+  "Sci-Fi":      ["Oryginalność wizji przyszłości",       "Logiczność i spójność świata"],
+  "Thriller":    ["Napięcie i suspens",                   "Nieprzewidywalność zakończenia"],
+};
+const DEFAULT_GENRE_CATS = ["Klimat i atmosfera", "Oryginalność i innowacyjność"];
+
+function getGenreCats(genre) { return GENRE_CATS[genre] || DEFAULT_GENRE_CATS; }
+function allCats(genre)      { return [...BASE_CATS, ...getGenreCats(genre)]; }
+
+function personScore(personRating) {
+  if (!personRating?.cats) return null;
+  const sum = personRating.cats.reduce((a, b) => a + b, 0);
+  return Math.round(sum / 50 * 100);
+}
+function jointPct(id) {
+  const r = RATINGS[id];
+  if (!r) return null;
+  const k = personScore(r.kar), a = personScore(r.adam);
+  if (k === null && a === null) return null;
+  const vals = [k, a].filter(v => v !== null);
+  return Math.round(vals.reduce((x, y) => x + y, 0) / vals.length);
+}
+
+/* ═══════════════════════════════════════════════
+   TMDB
+═══════════════════════════════════════════════ */
+const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
+const GENRE_ID_MAP = {
+  28:"Akcja",12:"Akcja",16:"Animacja",35:"Komedia",
+  80:"Kryminał",99:"Dokumentalny",18:"Dramat",
+  10751:"Familijny",14:"Fantasy",36:"Historyczny",
+  27:"Horror",10402:"Muzyczny",9648:"Tajemnica",
+  10749:"Romans",878:"Sci-Fi",53:"Thriller",
+  10752:"Wojenny",37:"Western"
+};
+function tmdbGenre(ids) {
+  if (!ids?.length) return "";
+  for (const id of ids) if (GENRE_ID_MAP[id]) return GENRE_ID_MAP[id];
+  return "";
+}
+let searchTimer = null;
+async function tmdbSearch(q, type = "movie") {
+  if (!TMDB_KEY || TMDB_KEY.startsWith("WSTAW")) return [];
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/search/${type}?api_key=${TMDB_KEY}&language=pl-PL&query=${encodeURIComponent(q)}`);
+    const d = await r.json();
+    return (d.results || []).slice(0, 8);
+  } catch { return []; }
+}
+async function tmdbDetails(id) {
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${TMDB_KEY}&language=pl-PL`);
+    return await r.json();
+  } catch { return null; }
+}
+async function getCast(movieId, tmdbId) {
+  if (!tmdbId) return null;
+  try {
+    const snap = await getDoc(doc(COLL.details, String(movieId)));
+    if (snap.exists() && snap.data().cast) return snap.data().cast;
+    const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/credits?api_key=${TMDB_KEY}&language=pl-PL`);
+    const d = await r.json();
+    const cast = (d.cast || []).slice(0, 8).map(c => c.name);
+    const dir  = (d.crew || []).find(c => c.job === "Director")?.name || null;
+    await setDoc(doc(COLL.details, String(movieId)), { cast, director: dir });
+    return { cast, director: dir };
+  } catch { return null; }
+}
+
+/* ═══════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════ */
+function esc(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+function fmtDt(iso) {
+  const d = new Date(iso); if (isNaN(d)) return iso;
+  return d.toLocaleDateString("pl-PL", { weekday:"short", day:"numeric", month:"numeric" })
+    + " " + d.toLocaleTimeString("pl-PL", { hour:"2-digit", minute:"2-digit" });
+}
+function monthLabel(m) {
+  const MN = ["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","sierpień","wrzesień","październik","listopad","grudzień"];
+  const [y, mo] = m.split("-"); return `${MN[+mo-1]} '${y.slice(2)}`;
+}
+
+/* ═══════════════════════════════════════════════
+   MOVIE CARD
+═══════════════════════════════════════════════ */
+function mCard(film, mode) {
+  const id  = film.id;
+  const p   = jointPct(id);
+  const lv  = p !== null ? getLv(p) : null;
+  const r   = RATINGS[id];
+  const kP  = r?.kar ? personScore(r.kar)  : null;
+  const aP  = r?.adam ? personScore(r.adam) : null;
+  const whereIn = r?.kar?.where || r?.adam?.where || null;
+  const poster  = film.poster
+    ? `<img src="${esc(film.poster)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      + `<div class="mc-ph" style="display:none">🎬</div>`
+    : `<div class="mc-ph">🎬</div>`;
+  const noteKar = r?.kar?.noteShort;
+  const noteAdam = r?.adam?.noteShort;
+
+  return `<div class="mcard" data-id="${esc(id)}" onclick="openDetail('${esc(id)}')">
+    <div class="mc-poster">
       ${poster}
-      <div class="stamp ${a===null?"none":""}" ${color?`style="border-color:${color};color:${color}"`:""} title="Średnia ocena">${fmtAvg(a)}</div>
-    </div>
-    <div class="t-body">
-      <button type="button" class="t-title" data-act="details">${esc(film.title)}</button>
-      <div class="t-meta">
-        ${film.length?`<span>${film.length} min</span>`:""}
-        ${film.year?`<span>${esc(film.year)}</span>`:""}
-        ${kind==="film"?`<span class="cin">${(film.cinemas||[]).map(c=>esc(c.replace("Poznań ",""))).join(" · ")}</span>`:""}
-        ${film.manual||kind!=="film"?`<button class="t-del" data-act="del">usuń</button>`:""}
-        ${sagaPill}
-      </div>
-      ${notesLine}
-      ${st.watched ? `
-      <div class="rates">
-        ${PEOPLE.map(([k,name])=>`
-        <div class="rate">
-          <span class="who">${name} <button type="button" class="note-btn" data-act="note" data-person="${k}" title="Notatka">💬</button></span>
-          <input type="number" min="1" max="10" step="0.5" inputmode="decimal" data-field="${k}" value="${st[k] ?? ""}" placeholder="1–10">
-        </div>`).join("")}
-        ${showAds ? `<div class="rate ads">
-          <span class="who">Reklamy</span>
-          <input type="number" min="0" max="60" step="1" inputmode="numeric" data-field="ads" value="${st.ads ?? ""}" placeholder="min">
-        </div>` : ""}
+      ${whereIn ? `<div class="mc-where ${whereIn}">${whereIn === "kino" ? "🎟️ Kino" : "🏠 Dom"}</div>` : ""}
+      ${lv ? `<div class="mc-badge">
+        ${pcSVG(lv.key, 26)}
+        <div class="mc-pct" style="border-color:${lv.color};color:${lv.color}">${p}%</div>
       </div>` : ""}
-      <div class="toggle">
-        <button data-act="toggle">${st.watched?"✓ Obejrzane":"Oznacz jako obejrzane"}</button>
-        ${!st.watched?`<button data-act="want">${st.want?"★ Na liście":"☆ Do obejrzenia"}</button>`:""}
+    </div>
+    <div class="mc-body">
+      <div class="mc-title">${esc(film.title)}</div>
+      <div class="mc-meta">
+        ${film.length ? `<span>${film.length} min</span>` : ""}
+        ${film.year   ? `<span>${esc(film.year)}</span>`  : ""}
+        ${film.genre  ? `<span class="genre">${esc(film.genre)}</span>` : ""}
       </div>
-      ${shows}
-    </div>
-  </article>`;
-}
-
-function snackCardHTML(s, st){
-  const a = avg(st);
-  const color = scoreColor(a);
-  return `
-  <article class="ticket snack" data-id="${esc(s.id)}" data-kind="snack">
-    <div class="snack-icon">
-      ${esc(s.icon||"🍿")}
-      <div class="stamp ${a===null?"none":""}" ${color?`style="border-color:${color};color:${color}"`:""} title="Średnia ocena">${fmtAvg(a)}</div>
-    </div>
-    <div class="t-body">
-      <div class="t-title">${esc(s.name)}</div>
-      <div class="rates">
-        ${PEOPLE.map(([k,name])=>`
-        <div class="rate">
-          <span class="who">${name}</span>
-          <input type="number" min="1" max="10" step="0.5" inputmode="decimal" data-field="${k}" value="${st[k] ?? ""}" placeholder="1–10">
-        </div>`).join("")}
-      </div>
-      <button class="t-del" data-act="del">usuń</button>
-    </div>
-  </article>`;
-}
-
-function sortFilms(arr, mode){
-  const cmp = {
-    "avg-desc":(a,b)=>(avg(stateFor(b.id))??-1)-(avg(stateFor(a.id))??-1),
-    "avg-asc": (a,b)=>(avg(stateFor(a.id))??99)-(avg(stateFor(b.id))??99),
-    "title":   (a,b)=>a.title.localeCompare(b.title,"pl"),
-    "ads-desc":(a,b)=>(stateFor(b.id).ads??-1)-(stateFor(a.id).ads??-1),
-    "ads-asc": (a,b)=>(stateFor(a.id).ads??999)-(stateFor(b.id).ads??999),
-    "seen":    (a,b)=>String(a.firstSeen).localeCompare(String(b.firstSeen)),
-  }[mode] || (()=>0);
-  return arr.slice().sort(cmp);
-}
-
-/* ============================================================
-   WIDOK: MIESIĄCE
-   ============================================================ */
-function renderMonths(){
-  const nav = document.getElementById("months"); nav.innerHTML = "";
-  for(const m of monthRange()){
-    const n = Object.keys(monthFilms(m)).length;
-    const b = document.createElement("button");
-    b.innerHTML = `${esc(monthLabel(m))} <span class="cnt">(${n})</span>`;
-    b.className = m === currentMonth ? "active" : "";
-    b.onclick = ()=>{ currentMonth = m; render(); };
-    nav.appendChild(b);
-  }
-}
-function render(){
-  renderMonths();
-  const films = Object.values(monthFilms(currentMonth));
-  const mode = document.getElementById("sort").value;
-  const showShows = isCurrentMonth(currentMonth);
-  const fallback = mode.startsWith("avg")||mode.startsWith("ads") ? "title" : mode;
-
-  const watched = sortFilms(films.filter(f=>stateFor(f.id).watched), mode);
-  const want    = sortFilms(films.filter(f=>!stateFor(f.id).watched && stateFor(f.id).want), fallback);
-  const rest    = sortFilms(films.filter(f=>!stateFor(f.id).watched && !stateFor(f.id).want), fallback);
-
-  document.getElementById("watchedList").innerHTML = watched.map(f=>ticketHTML(f, stateFor(f.id), {showShows:false})).join("");
-  document.getElementById("todoList").innerHTML    = want.map(f=>ticketHTML(f, stateFor(f.id), {showShows})).join("");
-  document.getElementById("restList").innerHTML    = rest.map(f=>ticketHTML(f, stateFor(f.id), {showShows})).join("");
-
-  document.getElementById("watchedEmpty").hidden = watched.length>0;
-  document.getElementById("todoEmpty").hidden = want.length>0;
-  document.getElementById("restEmpty").hidden = rest.length>0;
-  document.getElementById("watchedCount").textContent = `${watched.length} z ${films.length}`;
-  document.getElementById("todoCount").textContent = `${want.length}`;
-  document.getElementById("restCount").textContent = `${rest.length}`;
-}
-
-/* ============================================================
-   WIDOK: RANKING (wszech czasów, średnia)
-   ============================================================ */
-function rankRowHTML(i, film, st, scoreKey, monthsArr){
-  const scoreVal = scoreKey ? st[scoreKey] : avg(st);
-  const color = scoreColor(scoreVal);
-  const lvl = scoreKey ? null : scoreLevel(scoreVal);
-  const posCls = (scoreVal===null||scoreVal===undefined) ? "" : (["p1","p2","p3"][i]||"");
-  const kind = String(film.id||"").startsWith("tv") ? "tv" : "film";
-  const poster = film.poster
-    ? `<img src="${esc(film.poster)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=ph>🎬</div>'">`
-    : `<div class="ph">🎬</div>`;
-  return `
-  <div class="rank-row ${posCls} ${(scoreVal===null||scoreVal===undefined)?"unrated":""}" data-id="${esc(film.id)}" data-kind="${kind}">
-    <div class="rank-pos">${i+1}</div>
-    <div class="rank-poster" data-act="details">${poster}</div>
-    <div class="rank-info">
-      <button type="button" class="rank-title" data-act="details">${esc(film.title)}</button>
-      <div class="rank-meta">
-        ${monthsArr?`<span>${monthsArr.slice().sort().map(monthLabel).map(esc).join(", ")}</span>`:""}
-        ${film.length?`<span>${film.length} min</span>`:""}
-        ${st.saga?`<span>🏷️ ${esc(st.saga)}</span>`:""}
-        ${lvl?`<span class="lvl" style="color:${color}">${esc(lvl)}</span>`:""}
+      ${lv ? `<div class="mc-level" style="color:${lv.color}">${lv.name}</div>` : ""}
+      ${(kP !== null || aP !== null) ? `<div class="mc-scores">
+        ${kP !== null ? `<span>💛 <b style="color:${getLv(kP).color}">${kP}%</b></span>` : ""}
+        ${aP !== null ? `<span>💙 <b style="color:${getLv(aP).color}">${aP}%</b></span>` : ""}
+      </div>` : ""}
+      ${noteKar || noteAdam ? `<div class="note-line">
+        ${noteKar  ? `<span class="note-k">K: ${esc(noteKar)}</span>` : ""}
+        ${noteAdam ? `<span class="note-a">A: ${esc(noteAdam)}</span>` : ""}
+      </div>` : ""}
+      ${film.saga ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--gold)">🏷️ ${esc(film.saga)}</div>` : ""}
+      <div class="mc-btns">
+        ${mode === "watchlist" ?
+          `<button class="mc-btn primary" onclick="event.stopPropagation();openRating('${esc(id)}')">OCEŃ</button>
+           <button class="mc-btn" onclick="event.stopPropagation();removeFromWatchlist('${esc(id)}')">Usuń</button>` :
+          mode === "ocena" ?
+          `<button class="mc-btn primary" onclick="event.stopPropagation();openRating('${esc(id)}')">Edytuj ocenę</button>` :
+          `<button class="mc-btn" onclick="event.stopPropagation();addToWatchlist('${esc(id)}')">+ Lista</button>`}
       </div>
     </div>
-    <div class="rank-avg" ${color?`style="border-color:${color};color:${color}"`:""} title="${scoreKey?"Twoja ocena":"Średnia"}">${scoreVal===null||scoreVal===undefined?"–":scoreVal}</div>
   </div>`;
 }
-function renderRanking(){
-  const entries = collectAllFilmEntries().filter(e=>stateFor(e.film.id).watched);
-  const rows = entries.sort((a,b)=>{
-    const av=avg(stateFor(a.film.id)), bv=avg(stateFor(b.film.id));
-    if(av===null&&bv===null) return a.film.title.localeCompare(b.film.title,"pl");
-    if(av===null) return 1; if(bv===null) return -1;
-    return bv-av || a.film.title.localeCompare(b.film.title,"pl");
-  });
-  document.getElementById("rankList").innerHTML = rows.map((r,i)=>rankRowHTML(i,r.film,stateFor(r.film.id),null,r.months)).join("");
-  document.getElementById("rankEmpty").hidden = rows.length>0;
-  document.getElementById("rankCount").textContent = rows.length ? `${rows.length} ${rows.length===1?"film":"filmów"}` : "";
-}
 
-/* ============================================================
-   WIDOK: TOP 10 (osobno dla każdej osoby)
-   ============================================================ */
-function top10(person, limit=10, source="film"){
-  const entries = source==="tv" ? Object.values(TV).map(f=>({film:f})) : collectAllFilmEntries();
-  return entries.map(e=>({film:e.film, st:stateFor(e.film.id)}))
-    .filter(x=>x.st.watched && x.st[person]!=null)
-    .sort((a,b)=>b.st[person]-a.st[person])
-    .slice(0,limit);
-}
-function renderTop10(){
-  const kar = top10("kar",10,"film"), adam = top10("adam",10,"film");
-  document.getElementById("top10Kar").innerHTML = kar.map((r,i)=>rankRowHTML(i,r.film,r.st,"kar")).join("");
-  document.getElementById("top10Adam").innerHTML = adam.map((r,i)=>rankRowHTML(i,r.film,r.st,"adam")).join("");
-  document.getElementById("top10KarEmpty").hidden = kar.length>0;
-  document.getElementById("top10AdamEmpty").hidden = adam.length>0;
-}
-
-/* ============================================================
-   WIDOK: SAGI
-   ============================================================ */
-function allSagas(){
-  return [...new Set(Object.values(STATE).map(s=>s.saga).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pl"));
-}
-function renderSagi(){
-  const entries = collectAllFilmEntries();
-  const groups = {};
-  for(const e of entries){
-    const st = stateFor(e.film.id);
-    if(!st.saga) continue;
-    (groups[st.saga] ??= []).push({film:e.film, st});
-  }
-  const names = Object.keys(groups).sort((a,b)=>a.localeCompare(b,"pl"));
-  document.getElementById("sagaGroups").innerHTML = names.length ? names.map(name=>{
-    const items = groups[name];
-    const rated = items.map(i=>avg(i.st)).filter(v=>v!==null);
-    const gAvg = rated.length ? rated.reduce((a,b)=>a+b,0)/rated.length : null;
-    return `
-    <div class="saga-group">
-      <div class="saga-head">
-        <h3>${esc(name)}</h3>
-        <span class="pool-count">${items.length} ${items.length===1?"film":"filmów"}</span>
-        <span class="saga-avg">${gAvg!==null?"śr. "+fmtAvg(gAvg):""}</span>
+/* ═══════════════════════════════════════════════
+   RANK ROW
+═══════════════════════════════════════════════ */
+function rankRow(film, i, key) {
+  const p = key === "kar"  ? personScore(RATINGS[film.id]?.kar)
+          : key === "adam" ? personScore(RATINGS[film.id]?.adam)
+          : jointPct(film.id);
+  if (p === null) return "";
+  const lv = getLv(p);
+  const whereIn = RATINGS[film.id]?.kar?.where || RATINGS[film.id]?.adam?.where || "";
+  return `<div class="rank-row ${i === 0 ? "gold" : ""}" onclick="openDetail('${esc(film.id)}')">
+    <div class="rank-num">${i + 1}</div>
+    <div class="rank-poster">
+      ${film.poster ? `<img src="${esc(film.poster)}" alt="" loading="lazy">` : "🎬"}
+    </div>
+    <div class="rank-info">
+      <span class="rank-title">${esc(film.title)}</span>
+      <div class="rank-meta">
+        ${film.year   ? `<span>${esc(film.year)}</span>` : ""}
+        ${film.genre  ? `<span>${esc(film.genre)}</span>` : ""}
+        ${whereIn     ? `<span>${whereIn === "kino" ? "🎟️ kino" : "🏠 dom"}</span>` : ""}
+        ${film.saga   ? `<span>🏷️ ${esc(film.saga)}</span>` : ""}
+        <span style="color:${lv.color}">${lv.name}</span>
       </div>
-      <div class="saga-body">
-        ${items.map(i=>ticketHTML(i.film, i.st, {showShows:false, showAds:true, showSaga:false})).join("")}
+    </div>
+    <div class="rank-score">
+      ${pcSVG(lv.key, 30)}
+      <div class="rank-avg" style="border-color:${lv.color};color:${lv.color}">${p}%</div>
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER VIEWS
+═══════════════════════════════════════════════ */
+
+// ── HOME ──
+function renderHome() {
+  // legend
+  document.getElementById("home-legend").innerHTML =
+    LEVELS.map(l => `<div class="pc-leg-item">
+      ${pcSVG(l.key, 30)}
+      <div class="pc-leg-text">
+        <span class="pc-leg-name" style="color:${l.color}">${l.name.replace(" Popcorn", "<br>Popcorn")}</span>
+        <span class="pc-leg-range">${l.min}–${l.max}%</span>
+      </div>
+    </div>`).join("");
+
+  // hero — weź pierwszy film z repertuaru kina
+  const nowFilms = Object.values(currentMonthFilms());
+  if (nowFilms.length) {
+    const f = nowFilms[0];
+    document.getElementById("hero-title").textContent = f.title;
+    document.getElementById("hero-desc").textContent =
+      [f.genre, f.length ? f.length + " min" : "", f.year].filter(Boolean).join(" · ");
+    const side = nowFilms.slice(1, 3);
+    document.getElementById("hero-side").innerHTML = side.map(s => `
+      <div class="hero-side-item" onclick="setView('lista')">
+        ${s.poster ? `<img src="${esc(s.poster)}" alt="" style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0">` : '<div class="hsi-ph">🎬</div>'}
+        <div class="hsi-ov"><div class="hsi-title">${esc(s.title)}</div></div>
+      </div>`).join("");
+    document.getElementById("home-now-sub").textContent = nowFilms.length + " filmów";
+    document.getElementById("home-now").innerHTML = nowFilms.slice(0, 6).map(f => mCard(f, "now")).join("");
+  }
+
+  // top 3
+  const rated = Object.values(MOVIES)
+    .filter(f => RATINGS[f.id])
+    .sort((a, b) => (jointPct(b.id) ?? -1) - (jointPct(a.id) ?? -1))
+    .slice(0, 3);
+  document.getElementById("home-rank").innerHTML = rated.length
+    ? rated.map((f, i) => rankRow(f, i, "joint")).join("")
+    : "<div class='empty'>Ocenione filmy pojawią się tutaj.</div>";
+}
+
+// ── SEANSE ──
+function renderSeanse() {
+  const allFilms = Object.values(currentMonthFilms());
+  const cinema = document.getElementById("seanse-cinema")?.value || "";
+  const dateF  = document.getElementById("seanse-date")?.value  || "";
+
+  const filtered = allFilms.filter(f => {
+    if (cinema && !(f.cinemas || []).some(c => c.includes(cinema))) return false;
+    return true;
+  });
+
+  document.getElementById("seanse-count").textContent = filtered.length + " filmów";
+  if (!filtered.length) {
+    document.getElementById("seanse-list").innerHTML = "<div class='empty'>Brak filmów w repertuarze. Uruchom GitHub Action, żeby pobrać aktualne seanse.</div>";
+    return;
+  }
+  document.getElementById("seanse-list").innerHTML = filtered.map(f => {
+    const shows = (DB_FILMS.showtimes?.[f.id] || []).slice().sort((a,b)=>String(a.dt).localeCompare(String(b.dt))).filter(e => new Date(e.dt) > new Date()).slice(0, 5);
+    const isWatched = !!RATINGS[f.id];
+    const isOnList  = !!WATCHLIST[f.id];
+    return `<div class="showtime-row">
+      <div class="st-poster">
+        ${f.poster ? `<img src="${esc(f.poster)}" alt="" loading="lazy">` : "🎬"}
+      </div>
+      <div class="st-info">
+        <div class="st-title">${esc(f.title)}</div>
+        <div class="st-meta">${[f.genre, f.length ? f.length+" min" : ""].filter(Boolean).join(" · ")} · ${(f.cinemas||[]).map(c=>c.replace("Poznań ","")).join(", ")}</div>
+        ${shows.length ? `<div class="st-times">${shows.map(e => `
+          <div class="st-time ${(e.attrs||[]).includes("imax")?"imax":""}">${fmtDt(e.dt)}</div>`).join("")}
+        </div>` : ""}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${isWatched
+          ? `<button class="st-add" style="background:var(--ok)" onclick="openDetail('${esc(f.id)}')">✓ Oceniony</button>`
+          : isOnList
+          ? `<button class="st-add" style="background:#555;color:#ccc" onclick="setView('lista')">Na liście</button>`
+          : `<button class="st-add" onclick="addToWatchlist('${esc(f.id)}',${JSON.stringify(f)})">+ Do listy</button>`}
       </div>
     </div>`;
-  }).join("") : `<div class="empty">Żaden film nie ma jeszcze przypisanej sagi. Kliknij „+ saga" na bilecie filmu, żeby dodać.</div>`;
-}
-function editSaga(id){
-  const cur = stateFor(id).saga || "";
-  const existing = allSagas().join(", ");
-  const val = prompt(`Do jakiej sagi / uniwersum należy ten tytuł?\n(zostaw puste, aby usunąć przypisanie)\n\nIstniejące sagi: ${existing||"brak"}`, cur);
-  if(val===null) return;
-  setFilmState(id, {saga: val.trim() || null});
+  }).join("");
 }
 
-/* ============================================================
-   WIDOK: SERIALE
-   ============================================================ */
-function renderSeriale(){
-  const shows = Object.values(TV);
-  const watched = shows.filter(s=>stateFor(s.id).watched);
-  const want = shows.filter(s=>!stateFor(s.id).watched && stateFor(s.id).want);
-  const rest = shows.filter(s=>!stateFor(s.id).watched && !stateFor(s.id).want);
+// ── OCENY ──
+function renderOceny() {
+  const levelF = document.getElementById("oceny-filter-level")?.value || "";
+  const whereF = document.getElementById("oceny-filter-where")?.value || "";
 
-  document.getElementById("tvWatchedList").innerHTML = watched.map(s=>ticketHTML(s, stateFor(s.id), {kind:"tv", showAds:false})).join("");
-  document.getElementById("tvWantList").innerHTML    = want.map(s=>ticketHTML(s, stateFor(s.id), {kind:"tv", showAds:false})).join("");
-  document.getElementById("tvRestList").innerHTML    = rest.map(s=>ticketHTML(s, stateFor(s.id), {kind:"tv", showAds:false})).join("");
-  document.getElementById("tvWatchedEmpty").hidden = watched.length>0;
-  document.getElementById("tvWantEmpty").hidden = want.length>0;
-  document.getElementById("tvRestEmpty").hidden = rest.length>0;
-  document.getElementById("tvWatchedCount").textContent = watched.length;
-  document.getElementById("tvWantCount").textContent = want.length;
-  document.getElementById("tvRestCount").textContent = rest.length;
+  let films = Object.values(MOVIES).filter(f => RATINGS[f.id]);
+  if (levelF) films = films.filter(f => { const p = jointPct(f.id); return p !== null && getLv(p).key === levelF; });
+  if (whereF) films = films.filter(f => {
+    const r = RATINGS[f.id]; return r?.kar?.where === whereF || r?.adam?.where === whereF;
+  });
+  films.sort((a, b) => (jointPct(b.id) ?? -1) - (jointPct(a.id) ?? -1));
 
-  const tk = top10("kar",10,"tv"), ta = top10("adam",10,"tv");
-  document.getElementById("tvTop10Kar").innerHTML = tk.map((r,i)=>rankRowHTML(i,r.film,r.st,"kar")).join("") || `<div class="empty">Brak ocen.</div>`;
-  document.getElementById("tvTop10Adam").innerHTML = ta.map((r,i)=>rankRowHTML(i,r.film,r.st,"adam")).join("") || `<div class="empty">Brak ocen.</div>`;
+  document.getElementById("oceny-count").textContent = films.length + " filmów";
+  document.getElementById("oceny-grid").innerHTML = films.length
+    ? films.map(f => mCard(f, "ocena")).join("")
+    : "<div class='empty'>Brak wyników.</div>";
 }
 
-/* ============================================================
-   WIDOK: ULUBIONE (bez przypisania do miesiąca)
-   ============================================================ */
-function renderFavorites(){
-  const sortFav = (items, mode) => {
-    return items.slice().sort((a,b)=>{
-      if(mode==="avg-desc") return (avg(stateFor(b.id))??-1)-(avg(stateFor(a.id))??-1);
-      if(mode==="avg-asc")  return (avg(stateFor(a.id))??99)-(avg(stateFor(b.id))??99);
-      if(mode==="year-desc") return (b.year||0)-(a.year||0);
-      if(mode==="year-asc")  return (a.year||0)-(b.year||0);
-      return a.title.localeCompare(b.title,"pl");
-    });
-  };
-  const modeKar  = document.getElementById("favSortKar")?.value  || "title";
-  const modeAdam = document.getElementById("favSortAdam")?.value || "title";
-  const karItems  = sortFav(Object.values(FAV_KAR),  modeKar);
-  const adamItems = sortFav(Object.values(FAV_ADAM), modeAdam);
-
-  document.getElementById("favListKar").innerHTML  = karItems.map(f=>ticketHTML(f, stateFor(f.id), {kind:"fav-kar", showAds:false})).join("");
-  document.getElementById("favListAdam").innerHTML = adamItems.map(f=>ticketHTML(f, stateFor(f.id), {kind:"fav-adam", showAds:false})).join("");
-  document.getElementById("favEmptyKar").hidden  = karItems.length>0;
-  document.getElementById("favEmptyAdam").hidden = adamItems.length>0;
-  document.getElementById("favCountKar").textContent  = karItems.length;
-  document.getElementById("favCountAdam").textContent = adamItems.length;
+// ── LISTA ──
+function renderLista() {
+  const films = Object.values(WATCHLIST);
+  document.getElementById("lista-count").textContent = films.length + " filmów";
+  document.getElementById("lista-grid").innerHTML = films.length
+    ? films.map(f => mCard(f, "watchlist")).join("")
+    : "<div class='empty'>Lista jest pusta — dodaj filmy przyciskiem powyżej.</div>";
 }
 
-/* ============================================================
-   WIDOK: PRZEKĄSKI
-   ============================================================ */
-function renderSnacks(){
-  const items = Object.values(SNACKS).slice().sort((a,b)=>(avg(stateFor(b.id))??-1)-(avg(stateFor(a.id))??-1));
-  document.getElementById("snackList").innerHTML = items.map(s=>snackCardHTML(s, stateFor(s.id))).join("");
-  document.getElementById("snackEmpty").hidden = items.length>0;
+// ── TOP ──
+let curTopKey = "joint";
+function renderTop(key) {
+  curTopKey = key;
+  let films = Object.values(MOVIES).filter(f => {
+    if (key === "kino") return RATINGS[f.id]?.kar?.where === "kino" || RATINGS[f.id]?.adam?.where === "kino";
+    if (key === "dom")  return RATINGS[f.id]?.kar?.where === "dom"  || RATINGS[f.id]?.adam?.where === "dom";
+    return !!RATINGS[f.id];
+  });
+  const getPct = f => key === "kar"  ? personScore(RATINGS[f.id]?.kar)
+                    : key === "adam" ? personScore(RATINGS[f.id]?.adam)
+                    : jointPct(f.id);
+  films = films.filter(f => getPct(f) !== null).sort((a, b) => (getPct(b) ?? -1) - (getPct(a) ?? -1));
+  document.getElementById("top-list").innerHTML = films.length
+    ? films.map((f, i) => rankRow(f, i, key)).join("")
+    : "<div class='empty'>Brak filmów.</div>";
 }
-document.getElementById("addSnackBtn")?.addEventListener("click", async ()=>{
-  const name = prompt("Nazwa przekąski (np. Popcorn słony, Nachosy z serem):");
-  if(!name || !name.trim()) return;
-  const icon = prompt("Emoji/ikonka (opcjonalnie, Enter dla 🍿):", "🍿");
-  await addSnack({id:"sn"+Date.now(), name:name.trim(), icon:(icon||"🍿").trim()||"🍿"});
-});
 
-/* ============================================================
-   WIDOK: LOSUJ
-   ============================================================ */
-let drawSource = "both";
-function renderLosuj(){ renderPool("kar"); renderPool("adam"); }
-function renderPool(person){
-  const key = person==="kar" ? "karolina" : "adam";
-  const items = POOL[key] || [];
-  const grid = document.getElementById("pool-"+person);
-  grid.innerHTML = items.map(it=>`
-    <div class="pool-card" data-id="${esc(it.id)}" data-person="${person}">
-      ${it.poster?`<img src="${esc(it.poster)}" alt="${esc(it.title)}" title="${esc(it.title)}">`:`<div class="ph" title="${esc(it.title)}">🎬</div>`}
-      <button class="pc-del" data-act="poolDel" title="Usuń z puli">✕</button>
-    </div>`).join("");
-  document.getElementById("count-"+person).textContent = items.length + "/30";
+// ── SAGI ──
+function renderSagi() {
+  const groups = {};
+  for (const f of Object.values(MOVIES)) {
+    if (!f.saga) continue;
+    (groups[f.saga] = groups[f.saga] || []).push(f);
+  }
+  const names = Object.keys(groups).sort((a, b) => a.localeCompare(b, "pl"));
+  document.getElementById("sagi-list").innerHTML = names.length
+    ? names.map(name => {
+        const films = groups[name];
+        const avgs  = films.map(f => jointPct(f.id)).filter(v => v !== null);
+        const avg   = avgs.length ? Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length) : null;
+        const lv    = avg !== null ? getLv(avg) : null;
+        return `<div class="saga-group">
+          <div class="saga-head">
+            <span class="saga-name">${esc(name)}</span>
+            <span class="saga-count">${films.length} ${films.length===1?"film":"filmów"}</span>
+            ${lv ? `<span class="saga-avg">${pcSVG(lv.key,22)} <span style="color:${lv.color}">śr. ${avg}%</span></span>` : ""}
+          </div>
+          <div class="saga-body"><div class="movie-grid">${films.map(f=>mCard(f,"saga")).join("")}</div></div>
+        </div>`;
+      }).join("")
+    : "<div class='empty'>Brak filmów z przypisaną sagą. Kliknij w film → Szczegóły → Przypisz sagę.</div>";
 }
-function drawRandom(){
-  let pool = [];
-  if(drawSource==="kar"||drawSource==="both") pool = pool.concat(POOL.karolina||[]);
-  if(drawSource==="adam"||drawSource==="both") pool = pool.concat(POOL.adam||[]);
-  if(!pool.length){ alert("Wybrana pula jest pusta — dodaj filmy najpierw."); return; }
-  const btn = document.getElementById("drawBtn"); btn.disabled = true;
-  const card = document.getElementById("drawCard"); card.hidden = false;
-  let i = 0; const total = 14;
-  function tick(){
-    const r = pool[Math.floor(Math.random()*pool.length)];
-    card.innerHTML = `${r.poster?`<img src="${esc(r.poster)}" alt="">`:""}<div class="draw-title">${esc(r.title)}</div>`;
+
+// ── LOSUJ ──
+let lastDrawn = null;
+function doLosuj() {
+  const genre  = document.getElementById("losuj-genre").value;
+  const source = document.getElementById("losuj-source").value;
+  let pool = source === "rated" ? Object.values(MOVIES).filter(f => RATINGS[f.id])
+           : source === "lista" ? Object.values(WATCHLIST)
+           : [...Object.values(MOVIES), ...Object.values(WATCHLIST)];
+  if (genre) pool = pool.filter(f => f.genre === genre);
+  if (!pool.length) { alert("Brak filmów w wybranej puli. Zmień filtr."); return; }
+
+  const btn = document.getElementById("draw-btn");
+  const res = document.getElementById("draw-res");
+  btn.disabled = true; res.style.display = "none";
+
+  let i = 0, max = 14;
+  function tick() {
+    const r = pool[Math.floor(Math.random() * pool.length)];
+    document.getElementById("dr-title").textContent = r.title;
+    document.getElementById("dr-meta").textContent  = [r.genre, r.length ? r.length+" min" : "", r.year].filter(Boolean).join(" · ");
+    const dp = document.getElementById("dr-poster");
+    dp.innerHTML = r.poster ? `<img src="${esc(r.poster)}" alt="" style="width:100%;height:100%;object-fit:cover">` : "🎬";
+    if (i === max - 1) lastDrawn = r;
     i++;
-    if(i < total) setTimeout(tick, 60 + i*14);
-    else btn.disabled = false;
+    if (i < max) setTimeout(tick, 50 + i * 8);
+    else {
+      res.style.display = "block"; btn.disabled = false;
+      document.getElementById("dr-rate-btn").onclick = () => { if (lastDrawn) { addToMovies(lastDrawn); openRating(lastDrawn.id); } };
+      document.getElementById("dr-add-btn").onclick  = () => { if (lastDrawn) addToWatchlist(lastDrawn.id, lastDrawn); };
+    }
   }
   tick();
 }
 
-/* ============================================================
-   PRZEŁĄCZANIE WIDOKÓW
-   ============================================================ */
-const VIEWS = ["months","ranking","top10","sagi","seriale","ulubione","przekaski","losuj"];
-function currentView(){ const h=location.hash.replace("#",""); return VIEWS.includes(h)?h:"months"; }
-function setView(){
-  const v = currentView();
-  for(const id of VIEWS) document.getElementById(id+"Main").hidden = (id!==v);
-  document.getElementById("months").hidden = v!=="months";
-  document.getElementById("toolbar").style.display = v==="months" ? "" : "none";
-  document.querySelectorAll("#tabs a").forEach(a=>a.classList.toggle("active", a.dataset.view===v));
-  renderCurrentView();
-}
-function renderCurrentView(){
-  const v = currentView();
-  if(v==="months") render();
-  else if(v==="ranking") renderRanking();
-  else if(v==="top10") renderTop10();
-  else if(v==="sagi") renderSagi();
-  else if(v==="seriale") renderSeriale();
-  else if(v==="ulubione") renderFavorites();
-  else if(v==="przekaski") renderSnacks();
-  else if(v==="losuj") renderLosuj();
-}
-window.addEventListener("hashchange", setView);
+// ── ZASADY ──
+function renderZasady() {
+  const ZL = document.getElementById("zasady-levels");
+  if (!ZL || ZL.children.length) return; // już wyrenderowane
+  ZL.innerHTML = LEVELS.map(l => `
+    <div class="zasady-level-card" style="border-color:${l.color}44">
+      ${pcSVG(l.key, 52)}
+      <div class="zasady-level-name" style="color:${l.color}">${l.name}</div>
+      <div class="zasady-level-pct"  style="color:${l.color}">${l.min}–${l.max}%</div>
+      <div class="zasady-level-pts">${Math.round(l.min/100*50)}–${Math.round(l.max/100*50)} pkt / 50</div>
+    </div>`).join("");
 
-/* ============================================================
-   DELEGACJA ZDARZEŃ — kafelki (filmy + seriale)
-   ============================================================ */
-function wireTicketEvents(containerId){
-  const root = document.getElementById(containerId);
-  if(!root) return;
-  root.addEventListener("click", e=>{
-    const trigger = e.target.closest("[data-act]");
-    if(!trigger) return;
-    const row = trigger.closest(".ticket, .rank-row");
-    if(!row) return;
-    const id = row.dataset.id, kind = row.dataset.kind || "film";
-    switch(trigger.dataset.act){
-      case "toggle": setFilmState(id, {watched: !stateFor(id).watched}); break;
-      case "want":   setFilmState(id, {want: !stateFor(id).want}); break;
-      case "saga":   editSaga(id); break;
-      case "note":   openNoteDialog(id, trigger.dataset.person); break;
-      case "details": { const item = findAnyItem(id, kind); if(item) openDetails(id, item, kind); break; }
-      case "del":
-        if(!confirm("Usunąć ten wpis?")) return;
-        if(kind==="tv") deleteTvShow(id);
-        else if(kind==="fav-kar")  deleteFavorite("karolina", id);
-        else if(kind==="fav-adam") deleteFavorite("adam", id);
-        else if(kind==="snack") deleteSnack(id);
-        else deleteManualFilm(id);
-        break;
+  const CATS_FULL = [
+    {n:"Fabuła / Historia",     pts:["Nudna, przewidywalna","Trochę nudna, mało zaskakująca","Przyjemna, średnio wciągająca","Ciekawa, trzyma w napięciu","Niesamowita, nie można się oderwać"]},
+    {n:"Oryginalność",          pts:["Przewidywalna, bez pomysłów","Lekko przewidywalna","Kilka ciekawych momentów","Oryginalna, zaskakujące zwroty akcji","Totalnie zaskakująca i unikalna"]},
+    {n:"Plot twist",            pts:["Brak zaskoczeń","Kilka małych momentów zaskoczenia","Kilka ciekawych zwrotów akcji","Nieprzewidywalna w kluczowych momentach","Mistrzowskie zwroty akcji"]},
+    {n:"Bohaterowie",           pts:["Płaskie, nudne","Trochę ciekawe, nieangażujące","Średnio ciekawi","Interesujący, dobrze rozwinięci","Pełne życia, zapadają w pamięć"]},
+    {n:"Gra aktorska",          pts:["Sztuczna, brak emocji","Momentami wiarygodna, nierówna","Poprawna, naturalna w większości","Bardzo przekonująca, emocjonalnie spójna","Całkowicie autentyczna, pełna immersja"]},
+    {n:"Emocje / Wrażenia",     pts:["Nic nie czułam/em","Odrobinę, ale niezbyt silnie","Średnio emocjonująca","Mocne wrażenia, wzruszająca","Całkowicie mnie poruszyła"]},
+    {n:"Moralność / Przesłanie",pts:["Brak przesłania","Słabe, ledwo zauważalne","Umiarkowane, dające do myślenia","Wyraźne, inspirujące przesłanie","Głębokie, prowokuje do refleksji"]},
+    {n:"Pamięć po obejrzeniu",  pts:["Chcę zapomnieć","Łatwe do zapomnienia","Kilka momentów w pamięci","Długo pozostanie w głowie","Niezapomniane, intensywne"]},
+  ];
+  document.getElementById("zasady-cats").innerHTML = CATS_FULL.map((c, i) => `
+    <div class="zasady-cat">
+      <div class="zasady-cat-head">
+        <div class="zasady-cat-num">${i+1}</div>
+        <div class="zasady-cat-title">${c.n}</div>
+        <div class="zasady-cat-pts">1–5 pkt</div>
+      </div>
+      <div class="zasady-cat-body">
+        ${c.pts.map((d, n) => `<div class="zasady-pt"><div class="zasady-pt-num">${n+1} pkt</div><div class="zasady-pt-desc">${d}</div></div>`).join("")}
+      </div>
+    </div>`).join("");
+
+  document.getElementById("zasady-genre").innerHTML = Object.entries(GENRE_CATS).map(([g, cats]) => `
+    <div class="genre-cat-card">
+      <div class="genre-cat-name">${g}</div>
+      <div class="genre-cat-cats">${cats.join(" · ")}</div>
+    </div>`).join("");
+}
+
+/* ═══════════════════════════════════════════════
+   RATING FORM
+═══════════════════════════════════════════════ */
+let rfState = { movieId:null, genre:null, person:"kar", where:"kino", scores:{ kar:null, adam:null } };
+
+function openRating(movieId) {
+  const film = MOVIES[movieId] || WATCHLIST[movieId];
+  if (!film) return;
+  const r   = RATINGS[movieId];
+  const genre = film.genre || "";
+  const cats  = allCats(genre);
+  rfState = {
+    movieId,
+    genre,
+    person: "kar",
+    where:  r?.kar?.where || r?.adam?.where || "kino",
+    scores: {
+      kar:  r?.kar?.cats  ? [...r.kar.cats]  : Array(10).fill(3),
+      adam: r?.adam?.cats ? [...r.adam.cats] : Array(10).fill(3),
     }
-  });
-  root.addEventListener("change", e=>{
-    const inp = e.target.closest("input[data-field]");
-    if(!inp) return;
-    const id = inp.closest(".ticket, .rank-row").dataset.id;
-    const v = inp.value===""?null:Number(inp.value);
-    setFilmState(id, {[inp.dataset.field]: (v===null||isNaN(v))?null:v});
-  });
-}
-["monthsMain","rankingMain","top10Main","sagiMain","serialeMain","ulubioneMain","przekaskiMain"].forEach(wireTicketEvents);
-
-document.getElementById("sort").addEventListener("change", render);
-
-/* ============================================================
-   POLA / LOSOWANIE — zdarzenia
-   ============================================================ */
-document.querySelectorAll('input[name="drawSrc"]').forEach(r=>{
-  r.addEventListener("change", e=>{ if(e.target.checked) drawSource = e.target.value; });
-});
-document.getElementById("drawBtn").addEventListener("click", drawRandom);
-["kar","adam"].forEach(person=>{
-  document.getElementById("pool-"+person).addEventListener("click", e=>{
-    const btn = e.target.closest('[data-act="poolDel"]'); if(!btn) return;
-    const card = btn.closest(".pool-card");
-    removeFromPool(person==="kar"?"karolina":"adam", card.dataset.id);
-  });
-});
-document.getElementById("addPoolKar").onclick = ()=>openSearch({mode:"pool", person:"karolina"});
-document.getElementById("addPoolAdam").onclick = ()=>openSearch({mode:"pool", person:"adam"});
-document.getElementById("addFilmBtn").onclick = ()=>openSearch({mode:"film", month:currentMonth});
-document.getElementById("addTvBtn").onclick = ()=>openSearch({mode:"tv"});
-document.getElementById("addFavBtnKar").onclick  = ()=>openSearch({mode:"fav", person:"karolina"});
-document.getElementById("addFavBtnAdam").onclick = ()=>openSearch({mode:"fav", person:"adam"});
-document.getElementById("favSortKar")?.addEventListener("change", renderFavorites);
-document.getElementById("favSortAdam")?.addEventListener("change", renderFavorites);
-
-/* ============================================================
-   WYSZUKIWARKA TMDB (wspólny dialog: film / serial / pula)
-   ============================================================ */
-const TMDB_IMG = "https://image.tmdb.org/t/p/";
-const searchDialog = document.getElementById("searchDialog");
-let searchCtx = {mode:"film", month:null, person:null};
-let lastResults = [];
-let searchTimer = null;
-
-function openSearch(ctx){
-  searchCtx = ctx;
-  document.getElementById("searchTitle").textContent =
-    ctx.mode==="tv" ? "Dodaj serial"
-    : ctx.mode==="pool" ? `Dodaj do puli (${ctx.person==="karolina"?"Karolina":"Adam"})`
-    : ctx.mode==="fav" ? `Dodaj do ulubionych — ${ctx.person==="karolina"?"Karolina":"Adam"}`
-    : "Dodaj film";
-  document.getElementById("searchInput").value = "";
-  document.getElementById("searchResults").innerHTML = "";
-  document.getElementById("mfTitle").value = "";
-  document.getElementById("mfLink").value = "";
-  document.getElementById("mfPoster").value = "";
-  document.getElementById("mfLength").value = "";
-
-  const monthWrap = document.getElementById("searchMonthWrap");
-  if(ctx.mode==="film"){
-    monthWrap.hidden = false;
-    const sel = document.getElementById("searchMonth");
-    sel.innerHTML = monthRange().map(m=>`<option value="${m}" ${m===ctx.month?"selected":""}>${esc(monthLabel(m))}</option>`).join("");
-  } else { monthWrap.hidden = true; }
-
-  searchDialog.showModal();
-  document.getElementById("searchInput").focus();
-}
-document.getElementById("searchCancel").onclick = ()=>searchDialog.close();
-
-document.getElementById("searchInput").addEventListener("input", e=>{
-  clearTimeout(searchTimer);
-  const q = e.target.value.trim();
-  if(q.length < 2){ document.getElementById("searchResults").innerHTML = ""; return; }
-  searchTimer = setTimeout(()=>runSearch(q), 350);
-});
-
-async function runSearch(q){
-  const box = document.getElementById("searchResults");
-  if(!TMDB_KEY || TMDB_KEY.startsWith("WSTAW")){
-    box.innerHTML = `<p class="sr-hint">Brak klucza TMDB w config.js — użyj formularza „Dodaj ręcznie" poniżej.</p>`;
-    return;
-  }
-  const type = searchCtx.mode==="tv" ? "tv" : "movie";
-  try{
-    const r = await fetch(`https://api.themoviedb.org/3/search/${type}?api_key=${TMDB_KEY}&language=pl-PL&query=${encodeURIComponent(q)}`);
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const data = await r.json();
-    lastResults = (data.results||[]).slice(0,8);
-    box.innerHTML = lastResults.length ? lastResults.map(res=>{
-      const title = res.title || res.name;
-      const date = res.release_date || res.first_air_date || "";
-      const poster = res.poster_path ? TMDB_IMG+"w92"+res.poster_path : null;
-      return `<button type="button" class="sr-item" data-id="${res.id}">
-        ${poster?`<img src="${poster}" alt="">`:'<div class="sr-ph">🎬</div>'}
-        <span>${esc(title)} ${date?`<small>(${esc(date.slice(0,4))})</small>`:""}</span>
-      </button>`;
-    }).join("") : `<p class="sr-hint">Brak wyników.</p>`;
-  }catch(err){
-    box.innerHTML = `<p class="sr-hint">Błąd wyszukiwania TMDB: ${esc(err.message)}</p>`;
-  }
-}
-
-document.getElementById("searchResults").addEventListener("click", async e=>{
-  const btn = e.target.closest(".sr-item"); if(!btn) return;
-  await selectSearchResult(Number(btn.dataset.id));
-});
-
-async function selectSearchResult(tmdbId){
-  const r = lastResults.find(x=>x.id===tmdbId);
-  if(!r) return;
-
-  if(searchCtx.mode==="pool"){
-    const item = {id:"t"+tmdbId, title:r.title||r.name, poster: r.poster_path?TMDB_IMG+"w342"+r.poster_path:null};
-    await addToPool(searchCtx.person, item);
-    searchDialog.close(); return;
-  }
-  if(searchCtx.mode==="tv"){
-    const show = {
-      id:"tv"+tmdbId, title:r.name, poster:r.poster_path?TMDB_IMG+"w342"+r.poster_path:null,
-      link:`https://www.themoviedb.org/tv/${tmdbId}`, year:(r.first_air_date||"").slice(0,4)||null,
-    };
-    await addTvShow(show);
-    searchDialog.close(); return;
-  }
-  if(searchCtx.mode==="fav"){
-    let runtime=null, collectionName=null;
-    try{
-      const dr = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${TMDB_KEY}&language=pl-PL`);
-      if(dr.ok){ const det = await dr.json(); runtime = det.runtime || null; collectionName = det.belongs_to_collection?.name || null; }
-    }catch(_e){}
-    const film = {
-      id:"t"+tmdbId, title:r.title, poster:r.poster_path?TMDB_IMG+"w342"+r.poster_path:null,
-      link:`https://www.themoviedb.org/movie/${tmdbId}`, length:runtime,
-      year:(r.release_date||"").slice(0,4)||null, manual:true, source:"tmdb",
-    };
-    await addFavorite(searchCtx.person, film);
-    if(collectionName) await setFilmState(film.id, {saga: collectionName});
-    searchDialog.close(); return;
-  }
-  // mode === "film"
-  let runtime = null, collectionName = null;
-  try{
-    const dr = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${TMDB_KEY}&language=pl-PL`);
-    if(dr.ok){ const det = await dr.json(); runtime = det.runtime || null; collectionName = det.belongs_to_collection?.name || null; }
-  }catch(_e){ /* brak szczegółów nie blokuje dodania */ }
-
-  const month = document.getElementById("searchMonth").value || searchCtx.month;
-  const film = {
-    id:"t"+tmdbId, title:r.title, poster:r.poster_path?TMDB_IMG+"w342"+r.poster_path:null,
-    link:`https://www.themoviedb.org/movie/${tmdbId}`, length:runtime,
-    year:(r.release_date||"").slice(0,4)||null, cinemas:[], firstSeen:month+"-01", manual:true, source:"tmdb",
   };
-  await addManualFilm(month, film);
-  if(collectionName) await setFilmState(film.id, {saga: collectionName});
-  currentMonth = month;
-  searchDialog.close();
+  document.getElementById("ratingTitle").textContent = "Oceń: " + film.title;
+  renderRFBody(film, cats);
+  document.getElementById("ratingDialog").showModal();
 }
 
-/* ręczne dodanie bez TMDB (fallback) */
-document.getElementById("mfSave").onclick = async ()=>{
-  const title = document.getElementById("mfTitle").value.trim();
-  if(!title){ alert("Podaj tytuł."); return; }
-  const id = "m"+Date.now();
-  const base = {
-    id, title,
-    poster: document.getElementById("mfPoster").value.trim() || null,
-    link: document.getElementById("mfLink").value.trim() || null,
-    length: document.getElementById("mfLength").value ? Number(document.getElementById("mfLength").value) : null,
-    manual:true, source:"manual",
-  };
-  if(searchCtx.mode==="pool"){
-    await addToPool(searchCtx.person, {id, title, poster:base.poster});
-  } else if(searchCtx.mode==="tv"){
-    await addTvShow({...base, year:null});
-  } else if(searchCtx.mode==="fav"){
-    await addFavorite(searchCtx.person, {...base, year:null});
-  } else {
-    const month = document.getElementById("searchMonth").value || searchCtx.month;
-    await addManualFilm(month, {...base, year:month.slice(0,4), cinemas:[], firstSeen:month+"-01"});
-    currentMonth = month;
-  }
-  searchDialog.close();
-};
+function renderRFBody(film, cats) {
+  const { person, where, scores, movieId } = rfState;
+  const sc = scores[person];
+  const kT = scores.kar.reduce((a,b)=>a+b,0);
+  const aT = scores.adam.reduce((a,b)=>a+b,0);
+  const kP = Math.round(kT / 50 * 100);
+  const aP = Math.round(aT / 50 * 100);
+  const jP = Math.round((kP + aP) / 2);
+  const lv = getLv(jP), klv = getLv(kP), alv = getLv(aP);
+  const r  = RATINGS[movieId];
 
-/* ============================================================
-   NOTATKI (krótka — widoczna na kafelku, długa — tylko w szczegółach)
-   ============================================================ */
-const noteDialog = document.getElementById("noteDialog");
-let noteCtx = {id:null, person:null};
-function openNoteDialog(id, person){
-  noteCtx = {id, person};
-  const st = stateFor(id);
-  document.getElementById("noteDialogTitle").textContent = `Notatka — ${person==="kar"?"Karolina":"Adam"}`;
-  document.getElementById("noteShort").value = st[person+"NoteShort"] || "";
-  document.getElementById("noteLong").value = st[person+"NoteLong"] || "";
-  noteDialog.showModal();
-}
-document.getElementById("noteCancel").onclick = ()=>noteDialog.close();
-document.getElementById("noteSave").onclick = ()=>{
-  const short = document.getElementById("noteShort").value.trim().slice(0,80);
-  const long = document.getElementById("noteLong").value.trim();
-  setFilmState(noteCtx.id, {
-    [noteCtx.person+"NoteShort"]: short || null,
-    [noteCtx.person+"NoteLong"]: long || null,
-  });
-  noteDialog.close();
-};
-
-/* ============================================================
-   MODAL SZCZEGÓŁÓW (plakat, ocena+poziom, obsada z TMDB, notatki)
-   ============================================================ */
-const detailsDialog = document.getElementById("detailsDialog");
-async function openDetails(id, film, kind){
-  const st = stateFor(id);
-  const a = avg(st);
-  const color = scoreColor(a);
-  const lvl = scoreLevel(a);
-  const body = document.getElementById("detailsBody");
-  body.innerHTML = `
-    <div class="dt-head">
-      <div class="dt-poster">${film.poster?`<img src="${esc(film.poster)}" alt="">`:'<div class="ph">🎬</div>'}</div>
-      <div class="dt-info">
-        <h2>${esc(film.title)}</h2>
-        <div class="dt-meta">${film.year?esc(film.year):""}${film.year&&film.length?" · ":""}${film.length?film.length+" min":""}</div>
-        <div class="dt-score" ${color?`style="color:${color};border-color:${color}"`:""}>${fmtAvg(a)}</div>
-        ${lvl?`<div class="dt-level" style="color:${color}">${esc(lvl)}</div>`:""}
-        ${film.link?`<a href="${esc(film.link)}" target="_blank" rel="noopener" class="btn">Otwórz stronę ↗</a>`:""}
+  document.getElementById("ratingForm").innerHTML = `
+    <div class="rf-hd">
+      <div class="rf-poster">
+        ${film.poster ? `<img src="${esc(film.poster)}" alt="">` : "🎬"}
+      </div>
+      <div>
+        <div class="rf-movie-title">${esc(film.title)}</div>
+        <div class="rf-movie-meta">${[film.genre, film.length ? film.length+" min" : "", film.year].filter(Boolean).join(" · ")}</div>
+        <div class="rf-gnote">+2 kategorie gatunkowe: ${esc((cats[8]||"")+" · "+(cats[9]||""))}</div>
       </div>
     </div>
-    ${kind!=="snack"?`<div class="dt-section"><h4>Obsada</h4><p id="detailsCast">Wczytywanie…</p></div>`:""}
-    ${(st.karNoteLong || st.adamNoteLong) ? `<div class="dt-section"><h4>Notatki</h4>
-      ${st.karNoteLong?`<p><strong>Karolina:</strong> ${esc(st.karNoteLong)}</p>`:""}
-      ${st.adamNoteLong?`<p><strong>Adam:</strong> ${esc(st.adamNoteLong)}</p>`:""}
-    </div>` : ""}
-  `;
-  detailsDialog.showModal();
-  if(kind!=="snack"){
-    const cast = await getCast(id, film, kind);
-    const el = document.getElementById("detailsCast");
-    if(el) el.textContent = cast && cast.length ? cast.join(", ") : "Brak danych o obsadzie.";
+    <div class="rf-section-label">Gdzie oglądaliśmy:</div>
+    <div class="rf-where">
+      <button class="rf-where-btn ${where==="kino"?"active":""}" onclick="rfSetWhere('kino')">🎟️ Kino</button>
+      <button class="rf-where-btn ${where==="dom"?"active":""}" onclick="rfSetWhere('dom')">🏠 Dom</button>
+    </div>
+    <div class="rf-ptabs">
+      <button class="rf-ptab ${person==="kar"?"active":""}" onclick="rfSetPerson('kar')">💛 Karolina</button>
+      <button class="rf-ptab ${person==="adam"?"active":""}" onclick="rfSetPerson('adam')">💙 Adam</button>
+    </div>
+    <div class="cats-grid">
+      ${cats.map((c, i) => `
+        <div class="cat-card ${i >= 8 ? "genre" : ""}">
+          <div class="cat-name">${esc(c)}${i>=8?'<span class="gtag"> · gatunkowa</span>':""}</div>
+          <div class="cat-stars">${[1,2,3,4,5].map(n =>
+            `<div class="star ${sc[i]>=n?"on":""}" onclick="rfSetStar(${i},${n})">${n}</div>`).join("")}
+          </div>
+        </div>`).join("")}
+    </div>
+    <div class="rf-score-panel">
+      <div class="rf-icon-area">
+        ${pcSVG(lv.key, 58)}
+        <div class="rf-big-pct" style="color:${lv.color}">${jP}%</div>
+        <div class="rf-level-name" style="color:${lv.color}">${lv.name}</div>
+      </div>
+      <div class="rf-bars">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px">Karolina vs Adam</div>
+        <div class="rf-bar-row">
+          <span class="rf-bar-label">💛 Karolina</span>
+          <div class="rf-bar-bg"><div class="rf-bar-fill" style="width:${kP}%;background:${klv.color}"></div></div>
+          <span class="rf-bar-pct" style="color:${klv.color}">${kP}%</span>
+        </div>
+        <div class="rf-bar-row">
+          <span class="rf-bar-label">💙 Adam</span>
+          <div class="rf-bar-bg"><div class="rf-bar-fill" style="width:${aP}%;background:${alv.color}"></div></div>
+          <span class="rf-bar-pct" style="color:${alv.color}">${aP}%</span>
+        </div>
+        <div class="rf-where-summary">Suma: <b style="color:${lv.color}">${kT+aT}/100 pkt</b> · ${where==="kino"?"🎟️ Kino":"🏠 Dom"}</div>
+        <div class="rf-pc-row">
+          ${LEVELS.map(l=>`<div class="rf-pc-item">${pcSVG(l.key,18)}<span class="rf-pc-range" style="color:${l.color}">${l.min}–${l.max}%</span></div>`).join("")}
+        </div>
+      </div>
+    </div>
+    <!-- Notatki -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div>
+        <div class="rf-section-label" style="margin-bottom:4px">Notatka Karoliny</div>
+        <input id="note-kar-short" type="text" maxlength="80" placeholder="Krótka (na karcie)…" style="background:var(--card2);border:1px solid var(--brd);border-radius:6px;color:var(--ink);padding:7px 9px;font-size:12px;width:100%" value="${esc(r?.kar?.noteShort||"")}">
+      </div>
+      <div>
+        <div class="rf-section-label" style="margin-bottom:4px">Notatka Adama</div>
+        <input id="note-adam-short" type="text" maxlength="80" placeholder="Krótka (na karcie)…" style="background:var(--card2);border:1px solid var(--brd);border-radius:6px;color:var(--ink);padding:7px 9px;font-size:12px;width:100%" value="${esc(r?.adam?.noteShort||"")}">
+      </div>
+    </div>
+    <!-- Saga -->
+    <div style="margin-bottom:10px">
+      <div class="rf-section-label" style="margin-bottom:4px">Saga / Uniwersum (opcjonalnie)</div>
+      <input id="rf-saga" type="text" placeholder="np. Marvel, Star Wars, Diuna…" style="background:var(--card2);border:1px solid var(--brd);border-radius:6px;color:var(--ink);padding:7px 9px;font-size:12px;width:100%" value="${esc(film.saga||"")}">
+    </div>
+    <div class="dialog-actions">
+      <button class="btn" onclick="document.getElementById('ratingDialog').close()">Anuluj</button>
+      <button class="btn btn-primary" onclick="saveRating()">Zapisz oceny</button>
+    </div>`;
+}
+
+window.rfSetStar   = (i, n) => { rfState.scores[rfState.person][i] = n; const f = MOVIES[rfState.movieId]||WATCHLIST[rfState.movieId]; renderRFBody(f, allCats(rfState.genre)); };
+window.rfSetPerson = (p)    => { rfState.person = p; const f = MOVIES[rfState.movieId]||WATCHLIST[rfState.movieId]; renderRFBody(f, allCats(rfState.genre)); };
+window.rfSetWhere  = (w)    => { rfState.where  = w; const f = MOVIES[rfState.movieId]||WATCHLIST[rfState.movieId]; renderRFBody(f, allCats(rfState.genre)); };
+
+async function saveRating() {
+  const { movieId, where, scores } = rfState;
+  const film = MOVIES[movieId] || WATCHLIST[movieId];
+  if (!film) return;
+  const noteKarShort  = document.getElementById("note-kar-short")?.value.trim()  || null;
+  const noteAdamShort = document.getElementById("note-adam-short")?.value.trim() || null;
+  const saga          = document.getElementById("rf-saga")?.value.trim() || null;
+
+  await setDoc(doc(COLL.ratings, movieId), {
+    kar:  { cats: scores.kar,  where, noteShort: noteKarShort,  noteShort_adam: null },
+    adam: { cats: scores.adam, where, noteShort: noteAdamShort },
+  });
+  // uaktualnij sagę w movies
+  if (saga !== null || (film.saga !== undefined && saga !== film.saga)) {
+    await updateDoc(doc(COLL.movies, movieId), { saga: saga || null }).catch(() =>
+      setDoc(doc(COLL.movies, movieId), { ...film, saga: saga || null }));
+  }
+  // przenieś z watchlist do movies jeśli tam był
+  if (WATCHLIST[movieId]) await addToMovies(film);
+  document.getElementById("ratingDialog").close();
+}
+window.saveRating = saveRating;
+
+/* ═══════════════════════════════════════════════
+   FILM DETAIL MODAL
+═══════════════════════════════════════════════ */
+async function openDetail(id) {
+  const film = MOVIES[id] || WATCHLIST[id];
+  if (!film) return;
+  const r   = RATINGS[id];
+  const p   = jointPct(id);
+  const lv  = p !== null ? getLv(p) : null;
+  const kP  = r?.kar  ? personScore(r.kar)  : null;
+  const aP  = r?.adam ? personScore(r.adam) : null;
+  const cats = allCats(film.genre || "");
+
+  let castHtml = "<div class='cast-list' style='color:var(--muted);font-style:italic'>Ładowanie obsady…</div>";
+  document.getElementById("detailContent").innerHTML = buildDetailHTML(film, r, p, lv, kP, aP, cats, castHtml);
+  document.getElementById("detailDialog").showModal();
+
+  // pobierz obsadę asynchronicznie
+  const castData = await getCast(id, film.tmdbId);
+  const castEl   = document.getElementById("detail-cast");
+  if (castEl && castData) {
+    castEl.innerHTML =
+      (castData.director ? `<b>Reżyseria:</b> ${esc(castData.director)}<br>` : "") +
+      (castData.cast?.length ? `<b>Obsada:</b> ${castData.cast.map(esc).join(", ")}` : "Brak danych o obsadzie.");
   }
 }
-document.getElementById("detailsClose").onclick = ()=>detailsDialog.close();
+window.openDetail = openDetail;
 
-async function getCast(id, film, kind){
-  try{
-    const snap = await getDoc(doc(detailsCol, id));
-    if(snap.exists() && snap.data().cast) return snap.data().cast;
-  }catch(_e){ /* brak cache, lecimy dalej */ }
-  if(!TMDB_KEY || TMDB_KEY.startsWith("WSTAW")) return null;
-
-  let tmdbId = null, type = kind==="tv" ? "tv" : "movie";
-  if(id.startsWith("tv")) tmdbId = id.slice(2);
-  else if(id.startsWith("t")) tmdbId = id.slice(1);
-  else {
-    try{
-      const r = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&language=pl-PL&query=${encodeURIComponent(film.title)}`);
-      const data = await r.json();
-      tmdbId = data.results?.[0]?.id || null;
-    }catch(_e){ return null; }
-  }
-  if(!tmdbId) return null;
-  try{
-    const cr = await fetch(`https://api.themoviedb.org/3/${type}/${tmdbId}/credits?api_key=${TMDB_KEY}&language=pl-PL`);
-    const cdata = await cr.json();
-    const cast = (cdata.cast||[]).slice(0,8).map(c=>c.name);
-    await setDoc(doc(detailsCol, id), {cast, tmdbId, cachedAt: Date.now()});
-    return cast;
-  }catch(_e){ return null; }
+function buildDetailHTML(film, r, p, lv, kP, aP, cats, castHtml) {
+  return `
+  <div class="detail-head">
+    <div class="detail-poster">
+      ${film.poster ? `<img src="${esc(film.poster)}" alt="">` : `<div style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--dim)">🎬</div>`}
+    </div>
+    <div class="detail-info">
+      <h2>${esc(film.title)}</h2>
+      <div class="detail-meta">
+        ${film.year   ? `<b>${esc(film.year)}</b><br>` : ""}
+        ${film.genre  ? `Gatunek: ${esc(film.genre)}<br>` : ""}
+        ${film.length ? `Czas: ${film.length} min<br>` : ""}
+        ${film.saga   ? `Saga: ${esc(film.saga)}<br>` : ""}
+        ${r?.kar?.where ? `Oglądane w: ${r.kar.where === "kino" ? "🎟️ Kinie" : "🏠 Domu"}<br>` : ""}
+        ${film.link ? `<a href="${esc(film.link)}" target="_blank" rel="noopener" style="color:var(--gold);font-size:11px">Więcej →</a>` : ""}
+      </div>
+      ${lv ? `<div class="detail-score">
+        ${pcSVG(lv.key, 54)}
+        <div>
+          <div class="detail-avg" style="border-color:${lv.color};color:${lv.color}">${p}%</div>
+          <div class="detail-level" style="color:${lv.color};margin-top:4px">${lv.name}</div>
+        </div>
+      </div>` : ""}
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        ${kP !== null ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:11px">💛 Karolina: <b style="color:${getLv(kP).color}">${kP}%</b></div>` : ""}
+        ${aP !== null ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:11px">💙 Adam: <b style="color:${getLv(aP).color}">${aP}%</b></div>` : ""}
+      </div>
+    </div>
+  </div>
+  ${r ? `<div class="detail-cats">
+    ${cats.map((c, i) => {
+      const ks = r?.kar?.cats?.[i]  ?? "–";
+      const as = r?.adam?.cats?.[i] ?? "–";
+      return `<div class="detail-cat">
+        <div class="detail-cat-name">${esc(c)}</div>
+        <div class="detail-cat-scores">
+          ${ks !== "–" ? `<span>💛 ${ks}/5</span>` : ""}
+          ${as !== "–" ? `<span>💙 ${as}/5</span>` : ""}
+        </div>
+      </div>`;
+    }).join("")}
+  </div>` : ""}
+  ${r?.kar?.noteShort || r?.adam?.noteShort ? `<div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-top:10px">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Notatki</div>
+    ${r?.kar?.noteShort  ? `<div class="note-k">💛 ${esc(r.kar.noteShort)}</div>`  : ""}
+    ${r?.adam?.noteShort ? `<div class="note-a">💙 ${esc(r.adam.noteShort)}</div>` : ""}
+  </div>` : ""}
+  <div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-top:10px">
+    <div class="cast-list" id="detail-cast">${castHtml}</div>
+  </div>
+  <div class="dialog-actions" style="margin-top:12px">
+    <button class="btn btn-danger" onclick="deleteMovie('${esc(film.id)}');document.getElementById('detailDialog').close()">Usuń film</button>
+    <button class="btn" onclick="openRating('${esc(film.id)}');document.getElementById('detailDialog').close()">${r ? "Edytuj ocenę" : "Oceń"}</button>
+  </div>`;
 }
 
-/* ============================================================
+/* ═══════════════════════════════════════════════
+   FIREBASE CRUD
+═══════════════════════════════════════════════ */
+async function addToMovies(film) {
+  await setDoc(doc(COLL.movies, film.id), film);
+}
+async function addToWatchlist(id, film) {
+  const f = film || MOVIES[id];
+  if (!f) return;
+  if (WATCHLIST[id]) { alert("Ten film jest już na liście."); return; }
+  if (RATINGS[id])   { alert("Ten film jest już oceniony."); return; }
+  await setDoc(doc(COLL.watchlist, id), f);
+  setView("lista");
+}
+window.addToWatchlist = addToWatchlist;
+async function removeFromWatchlist(id) {
+  await deleteDoc(doc(COLL.watchlist, id));
+}
+window.removeFromWatchlist = removeFromWatchlist;
+async function deleteMovie(id) {
+  if (!confirm("Usunąć film i wszystkie jego oceny?")) return;
+  await deleteDoc(doc(COLL.movies, id)).catch(()=>{});
+  await deleteDoc(doc(COLL.ratings, id)).catch(()=>{});
+  await deleteDoc(doc(COLL.watchlist, id)).catch(()=>{});
+}
+window.deleteMovie = deleteMovie;
+
+/* ═══════════════════════════════════════════════
+   WYSZUKIWARKA TMDB
+═══════════════════════════════════════════════ */
+let searchMode = "watchlist"; // "watchlist" | "ocena"
+function openSearch(mode) {
+  searchMode = mode;
+  document.getElementById("searchTitle").textContent =
+    mode === "ocena" ? "Oceń film z bazy TMDB" : "Dodaj film do listy";
+  document.getElementById("searchInput").value = "";
+  document.getElementById("searchResults").innerHTML = "";
+  document.getElementById("searchDialog").showModal();
+  document.getElementById("searchInput").focus();
+}
+window.openSearch = openSearch;
+
+document.getElementById("searchInput").addEventListener("input", e => {
+  clearTimeout(searchTimer);
+  const q = e.target.value.trim();
+  if (q.length < 2) { document.getElementById("searchResults").innerHTML = ""; return; }
+  searchTimer = setTimeout(() => runSearch(q), 350);
+});
+
+async function runSearch(q) {
+  const box = document.getElementById("searchResults");
+  if (!TMDB_KEY || TMDB_KEY.startsWith("WSTAW")) {
+    box.innerHTML = `<div class="sr-hint">Brak klucza TMDB w config.js.</div>`; return;
+  }
+  box.innerHTML = `<div class="sr-hint">Szukam…</div>`;
+  const results = await tmdbSearch(q, "movie");
+  if (!results.length) { box.innerHTML = `<div class="sr-hint">Brak wyników.</div>`; return; }
+  box.innerHTML = results.map(res => {
+    const title  = res.title || res.name;
+    const year   = (res.release_date || "").slice(0, 4);
+    const poster = res.poster_path ? TMDB_IMG + res.poster_path : null;
+    return `<button type="button" class="sr-item" onclick="selectTmdb(${res.id})">
+      ${poster ? `<img src="${poster}" alt="" onerror="this.style.display='none'">` : '<div class="sr-ph">🎬</div>'}
+      <span>${esc(title)} ${year ? `<small style="color:var(--muted)">(${year})</small>` : ""}</span>
+    </button>`;
+  }).join("");
+}
+
+async function selectTmdb(tmdbId) {
+  document.getElementById("searchResults").innerHTML = `<div class="sr-hint">Pobieram szczegóły…</div>`;
+  const det = await tmdbDetails(tmdbId);
+  if (!det) { alert("Nie udało się pobrać szczegółów."); return; }
+
+  const film = {
+    id:      "t" + tmdbId,
+    tmdbId:  tmdbId,
+    title:   det.title || "?",
+    poster:  det.poster_path ? TMDB_IMG + det.poster_path : null,
+    year:    (det.release_date || "").slice(0, 4) || null,
+    length:  det.runtime || null,
+    genre:   tmdbGenre(det.genres?.map(g => g.id)),
+    link:    `https://www.themoviedb.org/movie/${tmdbId}`,
+    saga:    det.belongs_to_collection?.name || null,
+  };
+
+  document.getElementById("searchDialog").close();
+  if (searchMode === "ocena") {
+    await addToMovies(film);
+    openRating(film.id);
+  } else {
+    await addToWatchlist(film.id, film);
+  }
+}
+window.selectTmdb = selectTmdb;
+
+/* ═══════════════════════════════════════════════
+   REPERTUAR Z data/films.json
+═══════════════════════════════════════════════ */
+function currentMonthFilms() {
+  const now = new Date();
+  const key = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  return DB_FILMS.months[key]?.films || {};
+}
+async function loadDbFilms() {
+  try {
+    const r = await fetch("data/films.json?v=" + Date.now());
+    DB_FILMS = await r.json();
+    if (DB_FILMS.updated) document.getElementById("seanse-count").textContent = "Dane z: " + DB_FILMS.updated;
+    // Dodaj filmy z kina do MOVIES jeśli ich tam nie ma (tylko metadane, bez ocen)
+    for (const f of Object.values(currentMonthFilms())) {
+      if (!MOVIES[f.id]) await setDoc(doc(COLL.movies, f.id), { ...f, fromCinema: true }).catch(() => {});
+    }
+  } catch(e) {
+    console.warn("data/films.json niedostępny:", e);
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   ROUTING
+═══════════════════════════════════════════════ */
+const VIEWS = ["home","seanse","oceny","lista","top","sagi","losuj","zasady"];
+function currentView() {
+  const h = location.hash.replace("#", "");
+  return VIEWS.includes(h) ? h : "home";
+}
+function setView(v) {
+  location.hash = v === "home" ? "" : v;
+}
+window.setView = setView;
+
+function applyView() {
+  const v = currentView();
+  for (const id of VIEWS) {
+    const el = document.getElementById("v-" + id);
+    if (el) el.classList.toggle("active", id === v);
+  }
+  document.querySelectorAll(".ntab").forEach(t =>
+    t.classList.toggle("active", t.dataset.view === v));
+  renderCurrentView();
+}
+function renderCurrentView() {
+  const v = currentView();
+  if (v === "home")    renderHome();
+  else if (v === "seanse")  renderSeanse();
+  else if (v === "oceny")   renderOceny();
+  else if (v === "lista")   renderLista();
+  else if (v === "top")     renderTop(curTopKey);
+  else if (v === "sagi")    renderSagi();
+  else if (v === "losuj")   {} // losuj doesn't auto-render
+  else if (v === "zasady")  renderZasady();
+}
+
+window.addEventListener("hashchange", applyView);
+
+// Nav clicks
+document.getElementById("nav").addEventListener("click", e => {
+  const btn = e.target.closest(".ntab");
+  if (btn) setView(btn.dataset.view);
+});
+
+// Top tabs
+document.querySelector(".top-tab-bar").addEventListener("click", e => {
+  const btn = e.target.closest(".top-tab");
+  if (!btn) return;
+  document.querySelectorAll(".top-tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
+  renderTop(btn.dataset.top);
+});
+
+// Seanse filters
+["seanse-date","seanse-cinema"].forEach(id => {
+  document.getElementById(id)?.addEventListener("change", renderSeanse);
+});
+// Oceny filters
+["oceny-filter-level","oceny-filter-where"].forEach(id => {
+  document.getElementById(id)?.addEventListener("change", renderOceny);
+});
+
+/* ═══════════════════════════════════════════════
    INIT
-   ============================================================ */
-async function loadFilms(){
-  try{
-    const r = await fetch("data/films.json?v="+Date.now());
-    DB = await r.json();
-  }catch(e){
-    document.getElementById("updated").textContent = "Nie udało się wczytać data/films.json — sprawdź, czy plik istnieje w repo.";
-  }
-}
-(async function init(){
-  await loadFilms();
-  if(DB.updated) document.getElementById("updated").textContent = "Repertuar z: " + DB.updated;
-  const range = monthRange();
-  const now = range.find(isCurrentMonth);
-  currentMonth = (now && DB.months[now]) ? now : (Object.keys(DB.months).sort().pop() || now || range[range.length-1]);
-  setView();
+═══════════════════════════════════════════════ */
+(async function init() {
+  await loadDbFilms();
+  applyView();
 })();
