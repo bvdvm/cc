@@ -143,7 +143,9 @@ async function getCast(movieId, tmdbId) {
   if (!tmdbId) return null;
   try {
     const snap = await getDoc(doc(COLL.details, String(movieId)));
-    if (snap.exists() && snap.data().cast) return snap.data().cast;
+    if (snap.exists() && snap.data().cast) {
+      return { cast: snap.data().cast, director: snap.data().director || null };
+    }
     const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/credits?api_key=${TMDB_KEY}&language=pl-PL`);
     const d = await r.json();
     const cast = (d.cast || []).slice(0, 8).map(c => c.name);
@@ -611,17 +613,38 @@ async function openRating(movieId) {
   document.getElementById("ratingTitle").textContent = "Oceń: " + film.title;
   renderRFBody(film, allCats(genre));
   document.getElementById("ratingDialog").showModal();
-  // async: fetch cast and inject actor section
-  if (!rfState.castList.length && film.tmdbId) {
-    const castData = await getCast(movieId, film.tmdbId);
-    if (castData) {
-      rfState.castList = [
-        ...(castData.director ? [{name: castData.director, role: "Reżyseria"}] : []),
-        ...(castData.cast || []).slice(0, 6).map(n => ({name: n, role: "Aktor/ka"})),
-      ];
-      rfState._lastMovieId = movieId;
+  // async: fetch cast — spróbuj po tmdbId, a jak brak to szukaj po tytule
+  if (!rfState.castList.length) {
+    let resolvedTmdbId = film.tmdbId || null;
+    // jeśli film z kina (brak tmdbId), szukaj po tytule
+    if (!resolvedTmdbId && TMDB_KEY && !TMDB_KEY.startsWith("WSTAW")) {
+      try {
+        const sr = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&language=pl-PL&query=${encodeURIComponent(film.title)}`);
+        const sd = await sr.json();
+        resolvedTmdbId = sd.results?.[0]?.id || null;
+        // zapisz tmdbId w movies żeby następnym razem było gotowe
+        if (resolvedTmdbId && MOVIES[movieId]) {
+          updateDoc(doc(COLL.movies, movieId), { tmdbId: resolvedTmdbId }).catch(()=>{});
+        }
+      } catch(_e) {}
+    }
+    if (resolvedTmdbId) {
+      const castData = await getCast(movieId, resolvedTmdbId);
+      if (castData) {
+        rfState.castList = [
+          ...(castData.director ? [{name: castData.director, role: "Reżyseria"}] : []),
+          ...(castData.cast || []).slice(0, 6).map(n => ({name: n, role: "Aktor/ka"})),
+        ];
+        rfState._lastMovieId = movieId;
+        const sect = document.getElementById("actor-section");
+        if (sect) sect.innerHTML = buildActorSection();
+      } else {
+        const sect = document.getElementById("actor-section");
+        if (sect) sect.innerHTML = '<div class="sr-hint">Nie udało się pobrać obsady z TMDB.</div>';
+      }
+    } else {
       const sect = document.getElementById("actor-section");
-      if (sect) sect.innerHTML = buildActorSection();
+      if (sect) sect.innerHTML = '<div class="sr-hint">Brak danych obsady — film nie jest połączony z TMDB.<br>Dodaj go przez wyszukiwarkę (+ Oceń film) żeby połączyć.</div>';
     }
   }
 }
@@ -723,7 +746,7 @@ function rfRerender() {
 }
 function buildActorSection() {
   const cast = rfState.castList;
-  if (!cast.length) return '<div class="sr-hint" style="padding:8px 0">Ładowanie obsady… (wymaga klucza TMDB)</div>';
+  if (!cast.length) return '<div class="sr-hint" style="padding:8px 0">Wczytywanie obsady z TMDB…</div>';
   const { person, actorScores } = rfState;
   const sc = actorScores[person] || {};
   return cast.map(({name, role}) => {
