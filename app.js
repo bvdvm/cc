@@ -14,13 +14,15 @@ const fbApp = initializeApp(firebaseConfig);
 const db    = getFirestore(fbApp);
 
 const COLL = {
-  movies:   collection(db, "kMovies"),    // baza filmów
-  ratings:  collection(db, "kRatings"),   // oceny per film
-  watchlist:collection(db, "kWatchlist"), // do obejrzenia
-  details:  collection(db, "kDetails"),   // cache obsady z TMDB
+  movies:   collection(db, "kMovies"),
+  ratings:  collection(db, "kRatings"),
+  watchlist:collection(db, "kWatchlist"),
+  details:  collection(db, "kDetails"),
+  pools:    collection(db, "kPools"),     // własne pule do losowania
 };
 
-let MOVIES   = {};  // id → film
+let MOVIES   = {};
+let POOLS    = {}; // poolId -> { name, items: [{id,title,poster,genre,year}] }  // id → film
 let RATINGS  = {};  // id → { kar:{cats,where,noteShort,noteLong}, adam:{...} }
 let WATCHLIST = {}; // id → film
 let DB_FILMS  = { months:{}, showtimes:{}, updated:null }; // data/films.json
@@ -37,14 +39,15 @@ function showFbError(e) {
 onSnapshot(COLL.movies,   s => { MOVIES   = {}; s.forEach(d => MOVIES[d.id]   = d.data()); renderCurrentView(); }, showFbError);
 onSnapshot(COLL.ratings,  s => { RATINGS  = {}; s.forEach(d => RATINGS[d.id]  = d.data()); renderCurrentView(); }, showFbError);
 onSnapshot(COLL.watchlist,s => { WATCHLIST= {}; s.forEach(d => WATCHLIST[d.id]= d.data()); renderCurrentView(); }, showFbError);
+onSnapshot(COLL.pools, s => { POOLS={}; s.forEach(d=>POOLS[d.id]={id:d.id,...d.data()}); if(currentView()==="losuj") renderLosuj(); }, e=>console.warn("pools:",e));
 
 /* ═══════════════════════════════════════════════
    POPCORN / OCENY
 ═══════════════════════════════════════════════ */
 const LEVELS = [
-  { key:"matcha", name:"Matcha Popcorn",    min:0,  max:29,  c1:"#3D9E52", c2:"#2D8040", bc:"#D42B2B", color:"#3D9E52" },
-  { key:"kar",    name:"Karmelowy Popcorn", min:30, max:49,  c1:"#C87820", c2:"#9E5C10", bc:"#D42B2B", color:"#C87820" },
-  { key:"sol",    name:"Solony Popcorn",    min:50, max:79,  c1:"#DDD5B8", c2:"#C4B896", bc:"#D42B2B", color:"#BDB09A" },
+  { key:"matcha", name:"Matcha Popcorn",    min:0,  max:39,  c1:"#3D9E52", c2:"#2D8040", bc:"#D42B2B", color:"#3D9E52" },
+  { key:"kar",    name:"Karmelowy Popcorn", min:40, max:59,  c1:"#C87820", c2:"#9E5C10", bc:"#D42B2B", color:"#C87820" },
+  { key:"sol",    name:"Solony Popcorn",    min:60, max:79,  c1:"#DDD5B8", c2:"#C4B896", bc:"#D42B2B", color:"#BDB09A" },
   { key:"boski",  name:"Boski Popcorn",     min:80, max:100, c1:"#F5C45A", c2:"#E8952A", bc:"#E8952A", color:"#E8952A" },
 ];
 function getLv(pct) { return LEVELS.find(l => pct >= l.min && pct <= l.max) || LEVELS[0]; }
@@ -73,7 +76,7 @@ function pcSVG(key, sz = 36) {
 // 8 kategorii bazowych
 const BASE_CATS = [
   "Fabuła / Historia", "Oryginalność", "Plot twist", "Bohaterowie",
-  "Gra aktorska", "Emocje / Wrażenia", "Moralność / Przesłanie", "Pamięć po obejrzeniu"
+  "Gra aktorska", "Emocje / Wrażenia", "Moralność / Przesłanie", "Wrażenia wizualne"
 ];
 // 2 kategorie gatunkowe per gatunek
 const GENRE_CATS = {
@@ -508,57 +511,221 @@ function renderSagi() {
 
 // ── LOSUJ ──
 let lastDrawn = null;
-function doLosuj() {
-  const genre  = document.getElementById("losuj-genre")?.value  || "";
-  const source = document.getElementById("losuj-source")?.value || "all";
-  let pool = [];
-  if (source === "lista")  pool = Object.values(WATCHLIST);
-  else if (source === "rated") pool = Object.values(MOVIES).filter(f => RATINGS[f.id]);
-  else pool = [...Object.values(MOVIES), ...Object.values(WATCHLIST)];
-  // deduplicate by id
+let _drawCache = { genre:"", data:[], ts:0 };
+
+const GENRE_TO_TMDB_ID = {
+  "Akcja":28,"Animacja":16,"Dokumentalny":99,"Dramat":18,"Fantasy":14,
+  "Horror":27,"Komedia":35,"Romans":10749,"Sci-Fi":878,"Thriller":53,
+};
+
+async function fetchTmdbDrawPool(genre) {
+  const now = Date.now();
+  if (_drawCache.genre === genre && _drawCache.data.length && now - _drawCache.ts < 8*60*1000) {
+    return _drawCache.data;
+  }
+  if (!TMDB_KEY || TMDB_KEY.startsWith("WSTAW")) return [];
+  const gParam = genre && GENRE_TO_TMDB_ID[genre] ? `&with_genres=${GENRE_TO_TMDB_ID[genre]}` : "";
+  let all = [];
+  try {
+    const reqs = [
+      fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_KEY}&language=pl-PL&page=1${gParam}`),
+      fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_KEY}&language=pl-PL&page=2${gParam}`),
+      fetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${TMDB_KEY}&language=pl-PL&page=1${gParam}`),
+      fetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${TMDB_KEY}&language=pl-PL&page=2${gParam}`),
+    ];
+    const resps = await Promise.all(reqs);
+    for (const r of resps) {
+      if (!r.ok) continue;
+      const d = await r.json();
+      all.push(...(d.results||[]));
+    }
+  } catch(e) { console.warn("TMDB draw fetch error:", e); }
   const seen = new Set();
-  pool = pool.filter(f => { if (seen.has(f.id)) return false; seen.add(f.id); return true; });
-  if (genre) pool = pool.filter(f => f.genre === genre);
-  if (!pool.length) {
-    alert("Brak filmów w wybranej puli. Zmień gatunek lub źródło, ewentualnie dodaj filmy do bazy."); return;
+  const result = all
+    .filter(f => { if(seen.has(f.id)) return false; seen.add(f.id); return true; })
+    .map(f => ({
+      id: "t"+f.id, tmdbId: f.id,
+      title: f.title,
+      poster: f.poster_path ? TMDB_IMG + f.poster_path : null,
+      year:   (f.release_date||"").slice(0,4)||null,
+      genre:  tmdbGenre(f.genre_ids||[]),
+    }));
+  _drawCache = { genre, data: result, ts: Date.now() };
+  return result;
+}
+
+async function doLosuj() {
+  const genre  = document.getElementById("losuj-genre")?.value  || "";
+  const source = document.getElementById("losuj-source")?.value || "tmdb";
+  const btn    = document.getElementById("draw-btn");
+  const res    = document.getElementById("draw-res");
+  if (!btn || !res) return;
+
+  let pool = [];
+  if (source === "lista") {
+    pool = Object.values(WATCHLIST);
+    if (genre) pool = pool.filter(f => f.genre === genre);
+  } else if (source === "rated") {
+    pool = Object.values(MOVIES).filter(f => RATINGS[f.id]);
+    if (genre) pool = pool.filter(f => f.genre === genre);
+  } else if (source.startsWith("pool:")) {
+    const poolId = source.slice(5);
+    pool = POOLS[poolId]?.items || [];
+    if (genre) pool = pool.filter(f => f.genre === genre);
+  } else {
+    // "tmdb" — cała baza popularnych filmów z TMDB
+    btn.disabled = true;
+    btn.textContent = "Ładuję…";
+    pool = await fetchTmdbDrawPool(genre);
+    btn.textContent = "🎲 LOSUJ!";
   }
 
-  const btn = document.getElementById("draw-btn");
-  const res = document.getElementById("draw-res");
-  if (!btn || !res) return;
-  btn.disabled = true; res.style.display = "none";
+  if (!pool.length) {
+    btn.disabled = false;
+    alert("Brak filmów w wybranej puli. Zmień gatunek lub źródło."); return;
+  }
 
-  let i = 0, max = 16, picked = null;
+  btn.disabled = true; res.style.display = "none";
+  let i = 0, max = 18, picked = null;
   function tick() {
-    picked = pool[Math.floor(Math.random() * pool.length)];
-    const titleEl = document.getElementById("dr-title");
-    const metaEl  = document.getElementById("dr-meta");
-    const dpEl    = document.getElementById("dr-poster");
-    if (!titleEl || !metaEl || !dpEl) { btn.disabled = false; return; }
-    titleEl.textContent = picked.title;
-    metaEl.textContent  = [picked.genre, picked.length ? picked.length+" min" : "", picked.year].filter(Boolean).join(" · ");
-    dpEl.innerHTML = picked.poster
-      ? `<img src="${esc(picked.poster)}" alt="" style="width:100%;height:100%;object-fit:cover">`
-      : "🎬";
+    picked = pool[Math.floor(Math.random()*pool.length)];
+    const te = document.getElementById("dr-title");
+    const me = document.getElementById("dr-meta");
+    const de = document.getElementById("dr-poster");
+    if (!te||!me||!de) { btn.disabled=false; return; }
+    te.textContent = picked.title;
+    me.textContent = [picked.genre, picked.length?picked.length+" min":"", picked.year].filter(Boolean).join(" · ");
+    de.innerHTML   = picked.poster
+      ? `<img src="${esc(picked.poster)}" alt="" style="width:100%;height:100%;object-fit:cover">` : "🎬";
     i++;
-    if (i < max) setTimeout(tick, 45 + i * 9);
+    if (i < max) setTimeout(tick, 40 + i*8);
     else {
-      lastDrawn = picked;
-      res.style.display = "block";
-      btn.disabled = false;
-      const rateBtn = document.getElementById("dr-rate-btn");
-      const addBtn  = document.getElementById("dr-add-btn");
-      if (rateBtn) rateBtn.onclick = () => {
-        if (!lastDrawn) return;
-        addToMovies(lastDrawn).then(() => openRating(lastDrawn.id));
-      };
-      if (addBtn) addBtn.onclick = () => {
-        if (!lastDrawn) return;
-        addToWatchlist(lastDrawn.id, lastDrawn);
-      };
+      lastDrawn = picked; res.style.display = "block"; btn.disabled = false;
+      const rb = document.getElementById("dr-rate-btn");
+      const ab = document.getElementById("dr-add-btn");
+      if (rb) rb.onclick = () => { if(lastDrawn) addToMovies(lastDrawn).then(()=>openRating(lastDrawn.id)); };
+      if (ab) ab.onclick = () => { if(lastDrawn) addToWatchlist(lastDrawn.id, lastDrawn); };
     }
   }
   tick();
+}
+window.doLosuj = doLosuj;
+
+/* ─── Pool CRUD ─── */
+async function createPool(name) {
+  if (!name?.trim()) return;
+  const id = "p" + Date.now();
+  await setDoc(doc(COLL.pools, id), { name: name.trim(), items: [] });
+  return id;
+}
+async function poolAddFilm(poolId, film) {
+  const pool = POOLS[poolId]; if (!pool) return;
+  if (pool.items.some(x=>x.id===film.id)) { alert("Ten film jest już w tej puli."); return; }
+  const item = { id:film.id, title:film.title, poster:film.poster||null, genre:film.genre||null, year:film.year||null };
+  await updateDoc(doc(COLL.pools, poolId), { items:[...pool.items, item] });
+}
+async function poolRemoveFilm(poolId, filmId) {
+  const pool = POOLS[poolId]; if (!pool) return;
+  await updateDoc(doc(COLL.pools, poolId), { items: pool.items.filter(x=>x.id!==filmId) });
+}
+async function deletePool(poolId) {
+  if (!confirm(`Usunąć pulę "${POOLS[poolId]?.name}"?`)) return;
+  await deleteDoc(doc(COLL.pools, poolId));
+}
+window.createPool=createPool; window.poolRemoveFilm=poolRemoveFilm; window.deletePool=deletePool;
+
+/* ─── Pool manager dialog ─── */
+let _managerPoolId = null;
+function openPoolManager(poolId) {
+  _managerPoolId = poolId || null;
+  renderPoolManager();
+  document.getElementById("poolDialog").showModal();
+}
+window.openPoolManager = openPoolManager;
+
+function renderPoolManager() {
+  const dlg = document.getElementById("poolManagerContent");
+  if (!dlg) return;
+  const pools = Object.values(POOLS);
+  if (!_managerPoolId && pools.length) _managerPoolId = pools[0].id;
+  const cur = _managerPoolId ? POOLS[_managerPoolId] : null;
+  dlg.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+      <select id="pm-pool-sel" onchange="_managerPoolId=this.value;renderPoolManager()"
+        style="background:var(--card2);border:1px solid var(--brd);color:var(--ink);padding:7px 10px;border-radius:7px;font-size:13px;flex:1">
+        ${pools.map(p=>`<option value="${esc(p.id)}" ${p.id===_managerPoolId?"selected":""}>${esc(p.name)} (${p.items?.length||0})</option>`).join("")}
+        ${!pools.length?'<option disabled>Brak pul</option>':""}
+      </select>
+      <button class="btn" onclick="promptCreatePool()">+ Nowa pula</button>
+      ${cur?`<button class="btn btn-danger" onclick="deletePool('${esc(_managerPoolId)}')">Usuń pulę</button>`:""}
+    </div>
+    ${cur ? `
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Filmy w puli: ${cur.items?.length||0}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:240px;overflow-y:auto;margin-bottom:12px">
+      ${(cur.items||[]).map(f=>`<div style="background:var(--card2);border-radius:8px;overflow:hidden;position:relative">
+        <div style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--dim);background:var(--card2)">
+          ${f.poster?`<img src="${esc(f.poster)}" alt="" style="width:100%;height:100%;object-fit:cover">`:"🎬"}
+        </div>
+        <div style="padding:5px 6px;font-size:10px;font-weight:700;color:var(--ink);line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(f.title)}</div>
+        <button onclick="poolRemoveFilm('${esc(_managerPoolId)}','${esc(f.id)}')"
+          style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.75);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer">✕</button>
+      </div>`).join("")}
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Dodaj film do puli</div>
+    <input type="text" id="pm-search" class="search-input" placeholder="Wpisz tytuł…" autocomplete="off" oninput="pmSearch(this.value)" style="margin-bottom:6px">
+    <div id="pm-results" class="search-results" style="max-height:180px"></div>
+    ` : '<div class="empty">Utwórz pierwszą pulę przyciskiem powyżej.</div>'}
+  `;
+}
+
+let _pmTimer = null;
+function pmSearch(q) {
+  clearTimeout(_pmTimer);
+  const box = document.getElementById("pm-results"); if(!box) return;
+  if (q.length < 2) { box.innerHTML=""; return; }
+  box.innerHTML = '<div class="sr-hint">Szukam…</div>';
+  _pmTimer = setTimeout(async () => {
+    const results = await tmdbSearch(q, "movie");
+    box.innerHTML = results.length ? results.slice(0,6).map(res => {
+      const title = res.title; const year = (res.release_date||"").slice(0,4);
+      const poster = res.poster_path ? TMDB_IMG_SM + res.poster_path : null;
+      const film = { id:"t"+res.id, tmdbId:res.id, title, poster: res.poster_path?TMDB_IMG+res.poster_path:null, year, genre:tmdbGenre(res.genre_ids||[]) };
+      const filmJSON = JSON.stringify(film).replace(/"/g,"&quot;");
+      return `<button type="button" class="sr-item" onclick="poolAddFilm('${esc(_managerPoolId)}',JSON.parse(this.dataset.f));document.getElementById('pm-search').value='';document.getElementById('pm-results').innerHTML='';renderPoolManager()" data-f="${filmJSON}">
+        ${poster?`<img src="${poster}" alt="">` : '<div class="sr-ph">🎬</div>'}
+        <span>${esc(title)}${year?` <small>(${year})</small>`:""}</span>
+      </button>`;
+    }).join("") : '<div class="sr-hint">Brak wyników.</div>';
+  }, 350);
+}
+window.pmSearch = pmSearch;
+
+async function promptCreatePool() {
+  const name = prompt("Nazwa nowej puli (np. Horrory na Halloween, Top Adama):");
+  if (!name?.trim()) return;
+  const id = await createPool(name);
+  _managerPoolId = id;
+  renderPoolManager();
+}
+window.promptCreatePool = promptCreatePool;
+
+function renderLosuj() {
+  const pools = Object.values(POOLS);
+  const poolOpts = pools.map(p => `<option value="pool:${esc(p.id)}">${esc(p.name)} (${p.items?.length||0})</option>`).join("");
+  const sel = document.getElementById("losuj-source");
+  const curVal = sel?.value || "tmdb";
+  if (sel) {
+    sel.innerHTML = `
+      <option value="tmdb">🎬 Cała baza TMDB (popularne)</option>
+      <option value="lista">📋 Lista do obejrzenia</option>
+      <option value="rated">⭐ Tylko ocenione</option>
+      ${poolOpts ? `<optgroup label="Własne pule">${poolOpts}</optgroup>` : ""}
+    `;
+    // restore selection
+    if ([...sel.options].some(o=>o.value===curVal)) sel.value = curVal;
+  }
+  const btn = document.getElementById("manage-pools-btn");
+  if (btn) btn.textContent = `Zarządzaj pulami (${pools.length})`;
 }
 
 // ── ZASADY ──
@@ -581,7 +748,7 @@ function renderZasady() {
     {n:"Gra aktorska",          pts:["Sztuczna, brak emocji","Momentami wiarygodna, nierówna","Poprawna, naturalna w większości","Bardzo przekonująca, emocjonalnie spójna","Całkowicie autentyczna, pełna immersja"]},
     {n:"Emocje / Wrażenia",     pts:["Nic nie czułam/em","Odrobinę, ale niezbyt silnie","Średnio emocjonująca","Mocne wrażenia, wzruszająca","Całkowicie mnie poruszyła"]},
     {n:"Moralność / Przesłanie",pts:["Brak przesłania","Słabe, ledwo zauważalne","Umiarkowane, dające do myślenia","Wyraźne, inspirujące przesłanie","Głębokie, prowokuje do refleksji"]},
-    {n:"Pamięć po obejrzeniu",  pts:["Chcę zapomnieć","Łatwe do zapomnienia","Kilka momentów w pamięci","Długo pozostanie w głowie","Niezapomniane, intensywne"]},
+    {n:"Wrażenia wizualne",     pts:["Słaba realizacja, tandetne efekty — psuje odbiór","Przeciętna strona wizualna, nic szczególnego","Poprawna — kilka ładnych kadrów lub scen","Piękna realizacja, efekty robią wrażenie","Mistrzowskie wizualnie — każdy kadr jak dzieło sztuki"]},
   ];
   document.getElementById("zasady-cats").innerHTML = CATS_FULL.map((c, i) => `
     <div class="zasady-cat">

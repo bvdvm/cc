@@ -218,22 +218,23 @@
   <div class="phead">
     <div>
       <h1>Losuj film</h1>
-      <p>Nie wiesz co dziś oglądać? Zdaj się na los!</p>
+      <p>Cała baza TMDB · lista do obejrzenia · własne pule</p>
     </div>
+    <button class="btn" id="manage-pools-btn" onclick="openPoolManager()">Zarządzaj pulami (0)</button>
   </div>
   <div class="content">
     <div class="losuj-center">
       <div class="losuj-filters">
-        <select id="losuj-genre">
+        <select id="losuj-genre" style="flex:1">
           <option value="">Wszystkie gatunki</option>
           <option>Akcja</option><option>Animacja</option><option>Dokumentalny</option>
           <option>Dramat</option><option>Fantasy</option><option>Horror</option>
           <option>Komedia</option><option>Romans</option><option>Sci-Fi</option><option>Thriller</option>
         </select>
-        <select id="losuj-source">
-          <option value="all">Cała baza filmów</option>
-          <option value="lista">Z listy do obejrzenia</option>
-          <option value="rated">Tylko ocenione</option>
+        <select id="losuj-source" style="flex:1.5">
+          <option value="tmdb">🎬 Cała baza TMDB</option>
+          <option value="lista">📋 Lista do obejrzenia</option>
+          <option value="rated">⭐ Tylko ocenione</option>
         </select>
       </div>
       <button class="draw-btn" id="draw-btn" onclick="doLosuj()">🎲 LOSUJ!</button>
@@ -255,6 +256,17 @@
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════════════
+     DIALOG: Zarządzanie pulami
+════════════════════════════════ -->
+<dialog id="poolDialog" style="width:min(640px,96vw);max-height:90vh;overflow-y:auto">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <h3 style="margin:0">Własne pule do losowania</h3>
+    <button class="btn" onclick="document.getElementById('poolDialog').close()">✕</button>
+  </div>
+  <div id="poolManagerContent"></div>
+</dialog>
 
 <!-- ══════════════════════════════
      WIDOK: ZASADY OCENIANIA
