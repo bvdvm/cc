@@ -25,6 +25,9 @@
     <button class="ntab" data-view="lista">Do obejrzenia</button>
     <button class="ntab" data-view="top">Top</button>
     <button class="ntab" data-view="sagi">Sagi</button>
+    <button class="ntab" data-view="rezyserzy">Reżyserzy</button>
+    <button class="ntab" data-view="profil-kar">💛 Karolina</button>
+    <button class="ntab" data-view="profil-adam">💙 Adam</button>
     <button class="ntab" data-view="losuj">Losuj</button>
     <button class="ntab" data-view="zasady">Zasady oceniania</button>
   </nav>
@@ -201,15 +204,33 @@
   <div class="phead">
     <div>
       <h1>Sagi &amp; Uniwersa</h1>
-      <p>Filmy pogrupowane w serie i franchise</p>
+      <p>Filmy pogrupowane w serie i franchise · w tym nieocenione</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="sagi-sort" onchange="renderSagi()" style="font-size:12px;padding:7px 10px">
+        <option value="avg-desc">Ocena ↓</option>
+        <option value="avg-asc">Ocena ↑</option>
+        <option value="name">Nazwa A–Z</option>
+        <option value="count-desc">Najwięcej filmów</option>
+      </select>
+      <button class="btn btn-primary" onclick="openSagaManager()">+ Nowa saga</button>
     </div>
   </div>
   <div class="content">
     <div id="sagi-list">
-      <div class="empty">Brak filmów z przypisaną sagą.</div>
+      <div class="empty">Brak filmów z przypisaną sagą. Kliknij „+ Nowa saga" lub oceń film i przypisz sagę.</div>
     </div>
   </div>
 </div>
+
+<!-- Dialog: Saga Manager -->
+<dialog id="sagaDialog" style="width:min(660px,96vw);max-height:92vh;overflow-y:auto">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <h3 id="sagaDialogTitle" style="margin:0">Zarządzaj sagą</h3>
+    <button class="btn" onclick="document.getElementById('sagaDialog').close()">✕</button>
+  </div>
+  <div id="sagaManagerContent"></div>
+</dialog>
 
 <!-- ══════════════════════════════
      WIDOK: LOSUJ
@@ -330,6 +351,41 @@
     <button class="btn btn-primary" id="noteSaveBtn">Zapisz</button>
   </div>
 </dialog>
+
+<!-- ══════════════════════════════
+     WIDOK: REŻYSERZY
+════════════════════════════════ -->
+<div class="view" id="v-rezyserzy">
+  <div class="phead">
+    <div>
+      <h1>Reżyserzy</h1>
+      <p>Filmy pogrupowane wg reżysera</p>
+    </div>
+    <select id="rez-sort" onchange="renderRezyserzy()" style="font-size:12px;padding:7px 10px">
+      <option value="avg-desc">Ocena ↓</option>
+      <option value="avg-asc">Ocena ↑</option>
+      <option value="name">Nazwa A–Z</option>
+      <option value="count-desc">Najwięcej filmów</option>
+    </select>
+  </div>
+  <div class="content">
+    <div id="rez-list"><div class="empty">Ładowanie danych o reżyserach…</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: PROFIL KAROLINY
+════════════════════════════════ -->
+<div class="view" id="v-profil-kar">
+  <div id="profile-kar-content"></div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: PROFIL ADAMA
+════════════════════════════════ -->
+<div class="view" id="v-profil-adam">
+  <div id="profile-adam-content"></div>
+</div>
 
 <footer>Kineapolis · Prywatna baza filmowa Karoliny 💛 &amp; Adama 💙 · Cinema City Poznań</footer>
 

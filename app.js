@@ -40,6 +40,8 @@ onSnapshot(COLL.movies,   s => { MOVIES   = {}; s.forEach(d => MOVIES[d.id]   = 
 onSnapshot(COLL.ratings,  s => { RATINGS  = {}; s.forEach(d => RATINGS[d.id]  = d.data()); renderCurrentView(); }, showFbError);
 onSnapshot(COLL.watchlist,s => { WATCHLIST= {}; s.forEach(d => WATCHLIST[d.id]= d.data()); renderCurrentView(); }, showFbError);
 onSnapshot(COLL.pools, s => { POOLS={}; s.forEach(d=>POOLS[d.id]={id:d.id,...d.data()}); if(currentView()==="losuj") renderLosuj(); }, e=>console.warn("pools:",e));
+let DETAILS = {};
+onSnapshot(COLL.details, s => { s.forEach(d => DETAILS[d.id] = d.data()); if(currentView()==="rezyserzy") renderRezyserzy(); }, e=>console.warn("details:",e));
 
 /* ═══════════════════════════════════════════════
    POPCORN / OCENY
@@ -485,29 +487,400 @@ function renderTop(key) {
 
 // ── SAGI ──
 function renderSagi() {
+  const sort = document.getElementById("sagi-sort")?.value || "avg-desc";
+  // all films with saga (rated + unrated from MOVIES)
   const groups = {};
   for (const f of Object.values(MOVIES)) {
     if (!f.saga) continue;
     (groups[f.saga] = groups[f.saga] || []).push(f);
   }
-  const names = Object.keys(groups).sort((a, b) => a.localeCompare(b, "pl"));
+  // build sorted names
+  let names = Object.keys(groups);
+  const avgOf = name => {
+    const avgs = groups[name].map(f => jointPct(f.id)).filter(v=>v!==null);
+    return avgs.length ? avgs.reduce((a,b)=>a+b,0)/avgs.length : -1;
+  };
+  if (sort==="avg-desc")   names.sort((a,b)=>avgOf(b)-avgOf(a));
+  else if (sort==="avg-asc") names.sort((a,b)=>avgOf(a)-avgOf(b));
+  else if (sort==="name")    names.sort((a,b)=>a.localeCompare(b,"pl"));
+  else if (sort==="count-desc") names.sort((a,b)=>groups[b].length-groups[a].length);
+
   document.getElementById("sagi-list").innerHTML = names.length
+    ? names.map(name => sagaGroupHTML(name, groups[name])).join("")
+    : "<div class='empty'>Brak filmów z przypisaną sagą. Kliknij „+ Nowa saga" żeby zacząć.</div>";
+}
+
+function sagaGroupHTML(name, films) {
+  const avgs = films.map(f => jointPct(f.id)).filter(v=>v!==null);
+  const avg  = avgs.length ? Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length) : null;
+  const lv   = avg !== null ? getLv(avg) : null;
+  const rated = films.filter(f => RATINGS[f.id]).length;
+  return `<div class="saga-group">
+    <div class="saga-head">
+      <span class="saga-name">${esc(name)}</span>
+      <span class="saga-count">${films.length} ${films.length===1?"film":"filmów"} · ${rated} ocenione</span>
+      ${lv ? `<span class="saga-avg">${pcSVG(lv.key,22)} <span style="color:${lv.color}">śr. ${avg}%</span></span>` : ""}
+      <button class="btn" style="margin-left:auto;font-size:10px;padding:4px 10px"
+        onclick="openSagaManager('${esc(name).replace(/'/g,"\\'")}')">Zarządzaj</button>
+    </div>
+    <div class="saga-body"><div class="movie-grid">${films.map(f=>{
+      const mode = RATINGS[f.id] ? "saga" : "watchlist";
+      return mCard(f, mode);
+    }).join("")}</div></div>
+  </div>`;
+}
+
+/* ─── Saga Manager ─── */
+let _sagaName = null;
+function openSagaManager(existingName) {
+  _sagaName = existingName || null;
+  renderSagaManager();
+  document.getElementById("sagaDialog").showModal();
+  document.getElementById("sagaDialogTitle").textContent = existingName ? `Saga: ${existingName}` : "Nowa saga";
+}
+window.openSagaManager = openSagaManager;
+
+function renderSagaManager() {
+  const box = document.getElementById("sagaManagerContent");
+  if (!box) return;
+  // Films in this saga
+  const sagaFilms = _sagaName ? Object.values(MOVIES).filter(f=>f.saga===_sagaName) : [];
+  box.innerHTML = `
+    ${!_sagaName ? `<div style="margin-bottom:14px">
+      <div class="rf-section-label" style="margin-bottom:6px">Nazwa sagi</div>
+      <input id="sm-name" type="text" class="search-input" placeholder="np. Marvel, Diuna, Star Wars…">
+    </div>` : ""}
+    ${_sagaName ? `
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">
+      Filmy w sadze: ${sagaFilms.length}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:200px;overflow-y:auto;margin-bottom:14px">
+      ${sagaFilms.map(f=>`<div style="position:relative;background:var(--card2);border-radius:8px;overflow:hidden">
+        <div style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center">
+          ${f.poster?`<img src="${esc(f.poster)}" style="width:100%;height:100%;object-fit:cover">`:"🎬"}
+        </div>
+        <div style="padding:5px 6px;font-size:9.5px;font-weight:700;color:var(--ink);line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(f.title)}</div>
+        <button onclick="sagaRemoveFilm('${esc(f.id)}')"
+          style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.78);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer">✕</button>
+      </div>`).join("")}
+      ${sagaFilms.length===0?'<div style="grid-column:1/-1;color:var(--muted);font-size:12px;font-style:italic">Brak filmów</div>':""}
+    </div>` : ""}
+    <div class="rf-section-label" style="margin-bottom:6px">Dodaj film do sagi</div>
+    <input type="text" id="sm-search" class="search-input" placeholder="Wyszukaj film w TMDB…" autocomplete="off" oninput="smSearch(this.value)">
+    <div id="sm-results" class="search-results" style="max-height:200px"></div>
+    <div class="dialog-actions" style="margin-top:12px">
+      <button class="btn" onclick="document.getElementById('sagaDialog').close()">Zamknij</button>
+      ${!_sagaName ? `<button class="btn btn-primary" onclick="sagaCreate()">Utwórz sagę</button>` : ""}
+      ${_sagaName ? `<button class="btn btn-danger" onclick="sagaDelete()">Usuń sagę</button>` : ""}
+    </div>`;
+}
+
+let _smTimer = null;
+function smSearch(q) {
+  clearTimeout(_smTimer);
+  const box = document.getElementById("sm-results"); if(!box) return;
+  if (q.length < 2) { box.innerHTML=""; return; }
+  box.innerHTML = '<div class="sr-hint">Szukam…</div>';
+  _smTimer = setTimeout(async () => {
+    const results = await tmdbSearch(q, "movie");
+    if (!results.length) { box.innerHTML='<div class="sr-hint">Brak wyników.</div>'; return; }
+    box.innerHTML = results.slice(0,6).map(res => {
+      const f = {
+        id:"t"+res.id, tmdbId:res.id, title:res.title,
+        poster: res.poster_path ? TMDB_IMG+res.poster_path : null,
+        year: (res.release_date||"").slice(0,4),
+        genre: tmdbGenre(res.genre_ids||[]),
+      };
+      const fj = JSON.stringify(f).replace(/"/g,"&quot;");
+      return `<button type="button" class="sr-item" onclick="sagaAddFilm(JSON.parse(this.dataset.f))" data-f="${fj}">
+        ${res.poster_path?`<img src="${TMDB_IMG_SM+res.poster_path}" alt="">` : '<div class="sr-ph">🎬</div>'}
+        <span>${esc(res.title)} ${res.release_date?`<small>(${res.release_date.slice(0,4)})</small>`:""}</span>
+      </button>`;
+    }).join("");
+  }, 350);
+}
+window.smSearch = smSearch;
+
+async function sagaCreate() {
+  const nameEl = document.getElementById("sm-name");
+  const name = nameEl?.value.trim();
+  if (!name) { alert("Podaj nazwę sagi."); return; }
+  _sagaName = name;
+  document.getElementById("sagaDialogTitle").textContent = `Saga: ${name}`;
+  renderSagaManager();
+  renderSagi();
+}
+window.sagaCreate = sagaCreate;
+
+async function sagaAddFilm(film) {
+  const name = _sagaName;
+  if (!name) { alert("Najpierw utwórz lub wybierz sagę."); return; }
+  film.saga = name;
+  await setDoc(doc(COLL.movies, film.id), film);
+  renderSagaManager();
+}
+window.sagaAddFilm = sagaAddFilm;
+
+async function sagaRemoveFilm(id) {
+  await updateDoc(doc(COLL.movies, id), { saga: null }).catch(()=>{});
+  renderSagaManager();
+}
+window.sagaRemoveFilm = sagaRemoveFilm;
+
+async function sagaDelete() {
+  if (!confirm(`Usunąć sagę "${_sagaName}"? Filmy pozostaną w bazie, ale stracą przypisanie.`)) return;
+  const films = Object.values(MOVIES).filter(f=>f.saga===_sagaName);
+  for (const f of films) await updateDoc(doc(COLL.movies, f.id), { saga: null }).catch(()=>{});
+  document.getElementById("sagaDialog").close();
+  renderSagi();
+}
+window.sagaDelete = sagaDelete;
+
+/* ═══════════════════════════════════════════════
+   REŻYSERZY
+═══════════════════════════════════════════════ */
+function renderRezyserzy() {
+  const sort = document.getElementById("rez-sort")?.value || "avg-desc";
+  const groups = {};  // directorName -> { films:[], photo }
+  for (const [movieId, detail] of Object.entries(DETAILS)) {
+    const film = MOVIES[movieId]; if (!film) continue;
+    const dir = (detail.people||[]).find(p=>p.role==="director");
+    if (!dir) continue;
+    if (!groups[dir.name]) groups[dir.name] = { films:[], photo: dir.photo||null };
+    if (!groups[dir.name].films.find(f=>f.id===movieId)) groups[dir.name].films.push(film);
+  }
+  const avgOf = name => {
+    const avgs = groups[name].films.map(f=>jointPct(f.id)).filter(v=>v!==null);
+    return avgs.length ? avgs.reduce((a,b)=>a+b,0)/avgs.length : -1;
+  };
+  let names = Object.keys(groups);
+  if (sort==="avg-desc")    names.sort((a,b)=>avgOf(b)-avgOf(a));
+  else if (sort==="avg-asc") names.sort((a,b)=>avgOf(a)-avgOf(b));
+  else if (sort==="name")    names.sort((a,b)=>a.localeCompare(b,"pl"));
+  else if (sort==="count-desc") names.sort((a,b)=>groups[b].films.length-groups[a].films.length);
+
+  document.getElementById("rez-list").innerHTML = names.length
     ? names.map(name => {
-        const films = groups[name];
-        const avgs  = films.map(f => jointPct(f.id)).filter(v => v !== null);
-        const avg   = avgs.length ? Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length) : null;
-        const lv    = avg !== null ? getLv(avg) : null;
+        const { films, photo } = groups[name];
+        const avgs = films.map(f=>jointPct(f.id)).filter(v=>v!==null);
+        const avg  = avgs.length ? Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length) : null;
+        const lv   = avg!==null ? getLv(avg) : null;
         return `<div class="saga-group">
           <div class="saga-head">
+            ${photo
+              ? `<img src="${esc(photo)}" class="cast-photo" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+              : `<div style="width:44px;height:44px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎬</div>`}
             <span class="saga-name">${esc(name)}</span>
             <span class="saga-count">${films.length} ${films.length===1?"film":"filmów"}</span>
             ${lv ? `<span class="saga-avg">${pcSVG(lv.key,22)} <span style="color:${lv.color}">śr. ${avg}%</span></span>` : ""}
           </div>
-          <div class="saga-body"><div class="movie-grid">${films.map(f=>mCard(f,"saga")).join("")}</div></div>
+          <div class="saga-body"><div class="movie-grid">${films.map(f=>mCard(f, RATINGS[f.id]?"saga":"watchlist")).join("")}</div></div>
         </div>`;
       }).join("")
-    : "<div class='empty'>Brak filmów z przypisaną sagą. Kliknij w film → Szczegóły → Przypisz sagę.</div>";
+    : "<div class='empty'>Brak danych o reżyserach. Kliknij w oceniony film → Szczegóły żeby załadować obsadę.</div>";
 }
+
+/* ═══════════════════════════════════════════════
+   PROFILE STATS
+═══════════════════════════════════════════════ */
+function buildProfileStats(who) {
+  const rated = Object.entries(RATINGS);
+  const myRatings = rated.filter(([id, r]) => r[who]?.watched !== false && r[who]?.cats?.length);
+  if (!myRatings.length) return null;
+
+  const pct = ([id, r]) => personScore(r[who]);
+  const scores = myRatings.map(pct).filter(v=>v!==null);
+  const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+
+  // Genre breakdown
+  const genreAvg = {};
+  for (const [id, r] of myRatings) {
+    const f = MOVIES[id]; if (!f?.genre) continue;
+    const p = personScore(r[who]); if (p===null) continue;
+    if (!genreAvg[f.genre]) genreAvg[f.genre] = [];
+    genreAvg[f.genre].push(p);
+  }
+  const genreStats = Object.entries(genreAvg).map(([g,arr])=>({
+    genre:g, avg: Math.round(arr.reduce((a,b)=>a+b,0)/arr.length), count:arr.length
+  })).sort((a,b)=>b.avg-a.avg);
+  const favGenre = genreStats[0] || null;
+
+  // Top / Bottom 5
+  const sorted = myRatings.sort((a,b)=>(pct(b)||0)-(pct(a)||0));
+  const top5  = sorted.slice(0,5).map(([id])=>({film:MOVIES[id], p:personScore(RATINGS[id][who])}));
+  const bot5  = sorted.slice(-5).reverse().map(([id])=>({film:MOVIES[id], p:personScore(RATINGS[id][who])}));
+
+  // Distribution
+  const dist = { matcha:0, kar:0, sol:0, boski:0 };
+  for (const s of scores) dist[getLv(s).key]++;
+
+  // Total watch time
+  const totalMin = myRatings.reduce((sum,[id])=>{
+    const f = MOVIES[id]; return sum + (f?.length || 0);
+  }, 0);
+
+  // Cinema vs home
+  const cineCount = myRatings.filter(([id,r])=>r[who]?.where==="kino").length;
+  const homeCount = myRatings.filter(([id,r])=>r[who]?.where==="dom").length;
+
+  // Agree / Disagree with partner
+  const partner = who==="kar"?"adam":"kar";
+  const both = rated.filter(([id,r])=>r[who]?.watched!==false&&r[partner]?.watched!==false&&r[who]?.cats&&r[partner]?.cats);
+  let maxAgree=null,maxDis=null,maxAgreeDiff=999,maxDisDiff=0;
+  for (const [id,r] of both) {
+    const mp = personScore(r[who]), pp = personScore(r[partner]);
+    if (mp===null||pp===null) continue;
+    const diff = Math.abs(mp-pp);
+    if (diff < maxAgreeDiff) { maxAgreeDiff=diff; maxAgree={film:MOVIES[id],diff,myP:mp,pP:pp}; }
+    if (diff > maxDisDiff)   { maxDisDiff=diff;   maxDis  ={film:MOVIES[id],diff,myP:mp,pP:pp}; }
+  }
+
+  return { total:myRatings.length, avg, scores, genreStats, favGenre, top5, bot5,
+           dist, totalMin, cineCount, homeCount, maxAgree, maxDis };
+}
+
+function renderProfile(who) {
+  const isKar = who === "kar";
+  const name  = isKar ? "Karolina" : "Adam";
+  const photo = isKar ? "karolina.jpg" : "adam.jpg";
+  const heart = isKar ? "💛" : "💙";
+  const partner = isKar ? "Adam" : "Karolina";
+  const el    = document.getElementById(`profile-${who}-content`);
+  if (!el) return;
+
+  const st = buildProfileStats(who);
+  if (!st) {
+    el.innerHTML = `<div class="phead"><div><h1>${heart} ${name}</h1></div></div>
+      <div class="content"><div class="empty">Brak ocen — zacznij oceniać filmy!</div></div>`;
+    return;
+  }
+  const { total, avg, genreStats, favGenre, top5, bot5, dist, totalMin, cineCount, homeCount, maxAgree, maxDis } = st;
+  const avgLv = getLv(avg);
+  const hours = Math.floor(totalMin/60), mins = totalMin%60;
+
+  el.innerHTML = `
+  <!-- HERO profilu -->
+  <div class="profile-hero">
+    <div class="profile-photo-wrap">
+      <img src="${photo}" class="profile-photo" alt="${name}" onerror="this.outerHTML='<div class=profile-avatar>${heart}</div>'">
+    </div>
+    <div class="profile-info">
+      <div class="profile-name">${heart} ${name}</div>
+      <div class="profile-sub">Kinoman · ${total} ocenionych filmów · śr. ${avg}%</div>
+      <div class="profile-badge">
+        ${pcSVG(avgLv.key, 38)}
+        <div>
+          <div class="profile-badge-pct" style="color:${avgLv.color}">${avg}%</div>
+          <div class="profile-badge-lv"  style="color:${avgLv.color}">${avgLv.name}</div>
+        </div>
+      </div>
+    </div>
+    <!-- Quick stats -->
+    <div class="profile-quick-stats">
+      <div class="pqs-item"><div class="pqs-val">${total}</div><div class="pqs-lbl">Filmów oceniono</div></div>
+      <div class="pqs-item"><div class="pqs-val">${hours}h ${mins}m</div><div class="pqs-lbl">Łączny czas</div></div>
+      <div class="pqs-item"><div class="pqs-val">${cineCount}🎟️</div><div class="pqs-lbl">W kinie</div></div>
+      <div class="pqs-item"><div class="pqs-val">${homeCount}🏠</div><div class="pqs-lbl">W domu</div></div>
+      ${favGenre ? `<div class="pqs-item"><div class="pqs-val">${esc(favGenre.genre)}</div><div class="pqs-lbl">Ulubiony gatunek</div></div>` : ""}
+    </div>
+  </div>
+
+  <div class="content" style="padding-top:20px">
+    <!-- Score distribution -->
+    <div class="section">
+      <div class="sec-hd"><h2>Rozkład ocen</h2></div>
+      <div class="profile-dist">
+        ${LEVELS.map(l=>{
+          const cnt = dist[l.key]||0;
+          const pct2 = total ? Math.round(cnt/total*100) : 0;
+          return `<div class="pdist-item">
+            ${pcSVG(l.key,32)}
+            <div class="pdist-bar-wrap">
+              <div class="pdist-bar" style="width:${pct2}%;background:${l.color};min-width:${cnt?2:0}px"></div>
+            </div>
+            <span class="pdist-cnt" style="color:${l.color}">${cnt}</span>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>
+
+    <!-- Gatunek breakdown -->
+    <div class="section">
+      <div class="sec-hd"><h2>Średnie wg gatunku</h2></div>
+      <div class="genre-bars">
+        ${genreStats.map(({genre,avg:ga,count})=>{
+          const lv2=getLv(ga);
+          return `<div class="gbar-row">
+            <div class="gbar-label">${esc(genre)}</div>
+            <div class="gbar-track">
+              <div class="gbar-fill" style="width:${ga}%;background:${lv2.color}"></div>
+            </div>
+            <div class="gbar-pct" style="color:${lv2.color}">${ga}%</div>
+            <div class="gbar-cnt">${count} ${count===1?"film":"filmów"}</div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>
+
+    <!-- Top 5 / Bottom 5 -->
+    <div class="profile-cols">
+      <div>
+        <div class="sec-hd"><h2 style="color:var(--ok)">⭐ Top 5</h2></div>
+        <div class="rank-list">${top5.map(({film,p},i)=>{
+          if(!film) return "";
+          const lv2=getLv(p);
+          return `<div class="rank-row ${i===0?"gold":""}">
+            <div class="rank-num">${i+1}</div>
+            <div class="rank-poster">${film.poster?`<img src="${esc(film.poster)}" alt="">`:"🎬"}</div>
+            <div class="rank-info"><span class="rank-title">${esc(film.title)}</span>
+              <div class="rank-meta">${esc(film.genre||"")} ${film.year?`· ${film.year}`:""}</div>
+            </div>
+            <div class="rank-avg" style="border-color:${lv2.color};color:${lv2.color}">${p}%</div>
+          </div>`;
+        }).join("")}</div>
+      </div>
+      <div>
+        <div class="sec-hd"><h2 style="color:var(--red)">🍿 Bottom 5</h2></div>
+        <div class="rank-list">${bot5.map(({film,p},i)=>{
+          if(!film) return "";
+          const lv2=getLv(p);
+          return `<div class="rank-row">
+            <div class="rank-num">${i+1}</div>
+            <div class="rank-poster">${film.poster?`<img src="${esc(film.poster)}" alt="">`:"🎬"}</div>
+            <div class="rank-info"><span class="rank-title">${esc(film.title)}</span>
+              <div class="rank-meta">${esc(film.genre||"")} ${film.year?`· ${film.year}`:""}</div>
+            </div>
+            <div class="rank-avg" style="border-color:${lv2.color};color:${lv2.color}">${p}%</div>
+          </div>`;
+        }).join("")}</div>
+      </div>
+    </div>
+
+    <!-- Ciekawostki vs partner -->
+    ${(maxAgree||maxDis) ? `<div class="section">
+      <div class="sec-hd"><h2>Vs ${partner}</h2></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${maxAgree?.film ? `<div class="saga-group"><div class="saga-head">
+          <span class="saga-name">🤝 Największa zgodność</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ok)">różnica: ${maxAgree.diff}%</span>
+        </div><div class="saga-body" style="display:flex;gap:12px;align-items:center">
+          ${maxAgree.film.poster?`<img src="${esc(maxAgree.film.poster)}" style="width:42px;height:62px;object-fit:cover;border-radius:5px">`:""}
+          <div><div style="font-weight:700;color:var(--ink)">${esc(maxAgree.film.title)}</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px">${isKar?"K":"A"}: ${maxAgree.myP}% · ${isKar?"A":"K"}: ${maxAgree.pP}%</div></div>
+        </div></div>` : ""}
+        ${maxDis?.film ? `<div class="saga-group"><div class="saga-head">
+          <span class="saga-name">⚡ Największa różnica</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--red)">różnica: ${maxDis.diff}%</span>
+        </div><div class="saga-body" style="display:flex;gap:12px;align-items:center">
+          ${maxDis.film.poster?`<img src="${esc(maxDis.film.poster)}" style="width:42px;height:62px;object-fit:cover;border-radius:5px">`:""}
+          <div><div style="font-weight:700;color:var(--ink)">${esc(maxDis.film.title)}</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px">${isKar?"K":"A"}: ${maxDis.myP}% · ${isKar?"A":"K"}: ${maxDis.pP}%</div></div>
+        </div></div>` : ""}
+      </div>
+    </div>` : ""}
+  </div>`;
+}
+
 
 // ── LOSUJ ──
 let lastDrawn = null;
@@ -1263,7 +1636,7 @@ async function loadDbFilms() {
 /* ═══════════════════════════════════════════════
    ROUTING
 ═══════════════════════════════════════════════ */
-const VIEWS = ["home","seanse","oceny","lista","top","sagi","losuj","zasady"];
+const VIEWS = ["home","seanse","oceny","lista","top","sagi","rezyserzy","profil-kar","profil-adam","losuj","zasady"];
 function currentView() {
   const h = location.hash.replace("#", "");
   return VIEWS.includes(h) ? h : "home";
@@ -1290,7 +1663,10 @@ function renderCurrentView() {
   else if (v === "oceny")   renderOceny();
   else if (v === "lista")   renderLista();
   else if (v === "top")     renderTop(curTopKey);
-  else if (v === "sagi")    renderSagi();
+  else if (v === "sagi")        renderSagi();
+  else if (v === "rezyserzy")    renderRezyserzy();
+  else if (v === "profil-kar")   renderProfile("kar");
+  else if (v === "profil-adam")  renderProfile("adam");
   else if (v === "losuj")   {} // losuj doesn't auto-render
   else if (v === "zasady")  renderZasady();
 }

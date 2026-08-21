@@ -366,3 +366,58 @@ footer { background: var(--nav); border-top: 1px solid var(--brd); color: var(--
 
 /* Karolina / Adam stats on card with watch date */
 .mc-date { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; color: var(--dim); }
+
+/* ═══════════════════ PROFILE ═══════════════════ */
+.profile-hero {
+  display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap;
+  background: linear-gradient(to bottom, var(--card), transparent);
+  border-bottom: 1px solid var(--brd); padding: 24px 28px 20px;
+}
+.profile-photo-wrap { flex-shrink: 0; }
+.profile-photo {
+  width: 120px; height: 120px; border-radius: 50%; object-fit: cover;
+  border: 3px solid var(--gold); display: block;
+}
+.profile-avatar {
+  width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--gold);
+  background: var(--card2); display: flex; align-items: center; justify-content: center; font-size: 48px;
+}
+.profile-info { flex: 1; min-width: 200px; }
+.profile-name { font-size: 26px; font-weight: 900; color: var(--ink); margin-bottom: 4px; }
+.profile-sub  { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 12px; }
+.profile-badge { display: flex; align-items: center; gap: 10px; }
+.profile-badge-pct { font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 800; line-height: 1; }
+.profile-badge-lv  { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
+.profile-quick-stats {
+  display: flex; gap: 0; flex-wrap: wrap; border: 1px solid var(--brd);
+  border-radius: 10px; overflow: hidden; align-self: flex-start;
+}
+.pqs-item {
+  padding: 12px 18px; border-right: 1px solid var(--brd); text-align: center; min-width: 90px;
+}
+.pqs-item:last-child { border-right: none; }
+.pqs-val { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 800; color: var(--ink); }
+.pqs-lbl { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-top: 3px; }
+
+/* Score distribution */
+.profile-dist { display: flex; flex-direction: column; gap: 8px; }
+.pdist-item { display: flex; align-items: center; gap: 10px; }
+.pdist-bar-wrap { flex: 1; height: 10px; background: var(--brd); border-radius: 5px; overflow: hidden; }
+.pdist-bar { height: 100%; border-radius: 5px; transition: width .4s ease; }
+.pdist-cnt { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 800; min-width: 24px; text-align: right; }
+
+/* Genre bars */
+.genre-bars { display: flex; flex-direction: column; gap: 8px; }
+.gbar-row { display: flex; align-items: center; gap: 10px; }
+.gbar-label { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 700; color: var(--ink); width: 100px; flex-shrink: 0; }
+.gbar-track { flex: 1; height: 8px; background: var(--brd); border-radius: 4px; overflow: hidden; }
+.gbar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+.gbar-pct { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 800; min-width: 34px; text-align: right; }
+.gbar-cnt { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--muted); min-width: 60px; }
+
+/* Top/Bottom cols */
+.profile-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 640px) { .profile-cols { grid-template-columns: 1fr; } .profile-quick-stats { width: 100%; } }
+
+/* Saga head with photo */
+.saga-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
