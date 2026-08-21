@@ -507,7 +507,7 @@ function renderSagi() {
 
   document.getElementById("sagi-list").innerHTML = names.length
     ? names.map(name => sagaGroupHTML(name, groups[name])).join("")
-    : "<div class='empty'>Brak filmów z przypisaną sagą. Kliknij „+ Nowa saga" żeby zacząć.</div>";
+    : "<div class='empty'>Brak filmów z przypisaną sagą. Kliknij „+ Nowa saga” żeby zacząć.</div>";
 }
 
 function sagaGroupHTML(name, films) {
