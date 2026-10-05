@@ -8,7 +8,7 @@ export function initLists(ctx) {
 
   let LISTS = {};                 // id → { name, items:[...], created }
   const pending = new Set();
-  const ui = { active: "default", hideDone: false };
+  const ui = { active: "default", hideDone: false, onlyMine: false };
   let loaded = false, migrating = false;
   const el = id => document.getElementById(id);
   const hasKey = () => TMDB_KEY && !String(TMDB_KEY).startsWith("WSTAW");
@@ -67,7 +67,8 @@ export function initLists(ctx) {
     toast && toast("Dodano do listy „" + l.name + "”");
     return true;
   }
-  const addToActive = film => addTo(LISTS[ui.active] ? ui.active : "default", film);
+  // Stała lista „Do obejrzenia” — tu trafiają wszystkie przyciski „+ Lista”
+  const addToDefault = film => addTo("default", film);
   async function removeEverywhere(id) {
     for (const [lid, l] of Object.entries(LISTS)) {
       if (l.items.some(i => i.id === id)) { l.items = l.items.filter(i => i.id !== id); await save(lid); }
@@ -117,8 +118,10 @@ export function initLists(ctx) {
     async unseen(id) {
       for (const [lid, l] of Object.entries(LISTS)) { const o = l.items.find(x => x.id === id); if (o && o.watched) { o.watched = false; o.watchedAt = null; await save(lid); } }
     },
+    async copyTo(id, lid) { const it = find(ui.active, id); if (it && lid) await addTo(lid, it); },
     rate(id) { const it = find(ui.active, id); if (it) rateMovie(it); },
     async remove(id) { const l = LISTS[ui.active]; if (!l) return; l.items = l.items.filter(i => i.id !== id); await save(ui.active); },
+    toggleMine() { ui.onlyMine = !ui.onlyMine; renderLista(); },
     toggleHide() { ui.hideDone = !ui.hideDone; renderLista(); },
     async add(tmdbId) {
       el("lista-results").innerHTML = `<div class="sr-hint">Dodaję…</div>`;
@@ -156,6 +159,8 @@ export function initLists(ctx) {
     const tabs = el("lista-tabs"), body = el("lista-body");
     if (!tabs || !body) return;
     const ids = Object.keys(LISTS).sort((a, b) => a === "default" ? -1 : b === "default" ? 1 : (LISTS[a].created || 0) - (LISTS[b].created || 0));
+    if (!LISTS.default) LISTS.default = { name: "Do obejrzenia", items: [], created: 0 };
+    if (!ids.includes("default")) ids.unshift("default");
     if (!ids.length) { tabs.innerHTML = ""; body.innerHTML = `<div class="empty">Ładowanie list…</div>`; return; }
     tabs.innerHTML = ids.map(id => {
       const l = LISTS[id], done = l.items.filter(isWatched).length;
@@ -171,16 +176,18 @@ export function initLists(ctx) {
     const R = getRatings() || {};
     body.innerHTML = `
       <div class="ls-head">
-        <div class="ls-title">${esc(l.name)}</div>
+        <div class="ls-title">${ui.active === "default" ? "📌 " : ""}${esc(l.name)}</div>
         <div class="ls-actions">
-          <button class="sx-mini" onclick="LS.rename()">✎ Zmień nazwę</button>
+          ${ui.active === "default" ? "" : `<button class="sx-mini" onclick="LS.rename()">✎ Zmień nazwę</button>`}
+          <button class="sx-mini" onclick="WT.openPlatforms()">📡 Moje platformy</button>
+          <button class="sx-mini ${ui.onlyMine ? "on" : ""}" onclick="LS.toggleMine()">${ui.onlyMine ? "✓ Tylko u nas" : "Tylko na naszych platformach"}</button>
           <button class="sx-mini" onclick="LS.toggleHide()">${ui.hideDone ? "Pokaż obejrzane" : "Ukryj obejrzane"}</button>
           <button class="sx-mini" style="color:var(--red)" onclick="LS.del()">${ui.active === "default" ? "Wyczyść" : "Usuń listę"}</button>
         </div>
       </div>
       <div class="ls-progress"><div class="ls-progress-track"><div class="ls-progress-fill" style="width:${pct}%"></div></div>
         <span>${done} / ${items.length} obejrzane · ${pct}%</span></div>
-      ${vis.length ? `<div class="ls-items">${vis.map(({ it, i }) => {
+      ${vis.length ? `<div class="ls-items ${ui.onlyMine ? "only-mine" : ""}">${vis.map(({ it, i }) => {
         const rated = !!R[it.id], seen = isWatched(it);
         const pctJ = rated ? ctx.jointPct(it.id) : null, lv = pctJ !== null ? getLv(pctJ) : null;
         return `<div class="ls-item ${seen ? "seen" : ""}">
@@ -189,6 +196,7 @@ export function initLists(ctx) {
           <div class="ls-info">
             <div class="ls-name">${seen ? "✓ " : ""}${esc(it.title)}</div>
             <div class="ls-meta">${[it.year, it.genre, it.length ? it.length + " min" : ""].filter(Boolean).map(esc).join(" · ")}${it.watchedAt && !rated ? ` · obejrzano ${esc(it.watchedAt)}` : ""}</div>
+            ${it.tmdbId && !seen ? `<div class="ls-wh" data-wh="movie_${esc(it.tmdbId)}" data-mine-badge><span class="wh-none">sprawdzam streaming…</span></div>` : ""}
           </div>
           ${lv ? `<div class="rank-score">${pcSVG(lv.key, 26)}<div class="rank-avg" style="border-color:${lv.color};color:${lv.color}">${pctJ}%</div></div>` : ""}
           <div class="ls-btns">
@@ -197,6 +205,7 @@ export function initLists(ctx) {
                     : rated ? `<button class="mc-btn" onclick="LS.rate('${esc(it.id)}')">Edytuj ocenę</button>`
                             : `<button class="mc-btn primary" onclick="LS.rate('${esc(it.id)}')">Oceń</button>
                                <button class="mc-btn" onclick="LS.unseen('${esc(it.id)}')">Cofnij</button>`}
+            ${ids.length > 1 ? `<select class="ls-copy" onchange="LS.copyTo('${esc(it.id)}',this.value);this.selectedIndex=0" title="Kopiuj do innej listy"><option value="">➜ Kopiuj do…</option>${ids.filter(x => x !== ui.active).map(x => `<option value="${x}">${esc(LISTS[x].name)}</option>`).join("")}</select>` : ""}
             <span class="ls-arrows">
               <button class="mc-btn" title="Na górę" onclick="LS.top('${esc(it.id)}')">⤒</button>
               <button class="mc-btn" title="Wyżej" onclick="LS.move('${esc(it.id)}',-1)">↑</button>
@@ -206,7 +215,8 @@ export function initLists(ctx) {
           </div>
         </div>`;
       }).join("")}</div>` : `<div class="empty">${items.length ? "Wszystkie filmy obejrzane 🎉" : "Lista jest pusta — wyszukaj film powyżej, żeby go dodać."}</div>`}`;
-  }
+    ctx.afterRender && ctx.afterRender(body);
+}
 
-  return { renderLista, unwatchedMap, addTo, addToActive, removeEverywhere, getLists: () => LISTS };
+  return { renderLista, unwatchedMap, addTo, addToDefault, removeEverywhere, getLists: () => LISTS };
 }

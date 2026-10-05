@@ -474,5 +474,5 @@ export function initSeries(ctx) {
       <div class="zasady-cat"><div class="zasady-cat-body">${L.EPISODE_LABELS.map((d, n) => `<div class="zasady-pt"><div class="zasady-pt-num">${n} ★</div><div class="zasady-pt-desc">${esc(d)}</div></div>`).join("")}</div></div>`;
   }
 
-  return { renderSeries, profileHTML, zasadyHTML, openAdd, getSeries: () => SERIES };
+  return { renderSeries, profileHTML, zasadyHTML, openAdd, getSeries: () => SERIES, getSR: () => SR };
 }

@@ -3,6 +3,9 @@ import { firebaseConfig, TMDB_KEY } from "./config.js";
 import { initSeries } from "./series.js";
 import { initLists }  from "./lists.js";
 import { initAds }    from "./ads.js";
+import { initWatch }  from "./watch.js";
+import { initInsights } from "./insights.js";
+import { initGame }   from "./game.js";
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import {
   getFirestore, collection, doc,
@@ -28,7 +31,7 @@ let MOVIES   = {};
 let POOLS    = {}; // poolId -> { name, items: [{id,title,poster,genre,year}] }  // id → film
 let RATINGS  = {};  // id → { kar:{cats,where,noteShort,noteLong}, adam:{...} }
 let WATCHLIST = {}; // id → film  (pochodna: nieobejrzane filmy ze wszystkich list — patrz lists.js)
-let SERIES_API = null, LISTS_API = null, ADS_API = null;
+let SERIES_API = null, LISTS_API = null, ADS_API = null, WATCH_API = null, INSIGHTS_API = null, GAME_API = null;
 function syncWatchlist() { WATCHLIST = LISTS_API ? LISTS_API.unwatchedMap() : {}; }
 let DB_FILMS  = { months:{}, showtimes:{}, updated:null }; // data/films.json
 
@@ -881,6 +884,7 @@ function renderProfile(who) {
       </div>
     </div>` : ""}
     ${SERIES_API ? SERIES_API.profileHTML(who) : ""}
+    ${GAME_API ? GAME_API.profileHTML(who) : ""}
   </div>`;
 }
 
@@ -1500,7 +1504,7 @@ async function addToWatchlist(id, film) {
   const f = film || MOVIES[id];
   if (!f || !LISTS_API) return;
   if (RATINGS[id]) { toast("Ten film jest już oceniony."); return; }
-  await LISTS_API.addToActive(f);
+  await LISTS_API.addToDefault(f);
 }
 window.addToWatchlist = addToWatchlist;
 async function removeFromWatchlist(id) {
@@ -1646,7 +1650,7 @@ async function loadDbFilms() {
 /* ═══════════════════════════════════════════════
    ROUTING
 ═══════════════════════════════════════════════ */
-const VIEWS = ["home","seanse","oceny","seriale","lista","top","sagi","rezyserzy","profil-kar","profil-adam","losuj","zasady"];
+const VIEWS = ["home","seanse","oceny","seriale","lista","dzis","podsumowania","gra","top","sagi","rezyserzy","profil-kar","profil-adam","losuj","zasady"];
 function currentView() {
   const h = location.hash.replace("#", "");
   return VIEWS.includes(h) ? h : "home";
@@ -1669,7 +1673,10 @@ function applyView() {
 function renderCurrentView() {
   syncWatchlist();
   const v = currentView();
-  if (v === "home")    renderHome();
+  if (v === "home")    { renderHome(); INSIGHTS_API && INSIGHTS_API.renderHome(); }
+  else if (v === "dzis")          WATCH_API && WATCH_API.renderTonight();
+  else if (v === "podsumowania")  INSIGHTS_API && INSIGHTS_API.render();
+  else if (v === "gra")           GAME_API && GAME_API.render();
   else if (v === "seanse")  renderSeanse();
   else if (v === "oceny")   renderOceny();
   else if (v === "lista")   renderLista();
@@ -1692,10 +1699,10 @@ document.getElementById("nav").addEventListener("click", e => {
 });
 
 // Top tabs
-document.querySelector(".top-tab-bar").addEventListener("click", e => {
+document.querySelector("#v-top .top-tab-bar").addEventListener("click", e => {
   const btn = e.target.closest(".top-tab");
   if (!btn) return;
-  document.querySelectorAll(".top-tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll("#v-top .top-tab").forEach(t => t.classList.remove("active"));
   btn.classList.add("active");
   renderTop(btn.dataset.top);
 });
@@ -1712,14 +1719,20 @@ document.querySelector(".top-tab-bar").addEventListener("click", e => {
 /* ═══════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════ */
-const FS = { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs };
+const FS = { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs, getDoc };
 const baseCtx = {
-  fs: FS, db, esc, getLv, pcSVG, TMDB_KEY, toast, jointPct, fetchFilm, rateMovie,
-  getRatings: () => RATINGS, getGenreCats,
+  fs: FS, db, esc, getLv, pcSVG, TMDB_KEY, toast, jointPct, personScore, fetchFilm, rateMovie,
+  getRatings: () => RATINGS, getMovies: () => MOVIES, getGenreCats,
 };
-LISTS_API = initLists({ ...baseCtx, onChange: () => { syncWatchlist(); if (currentView() !== "lista") renderCurrentView(); } });
+LISTS_API = initLists({ ...baseCtx,
+  onChange: () => { syncWatchlist(); if (currentView() !== "lista") renderCurrentView(); },
+  afterRender: b => WATCH_API && WATCH_API.hydrate(b) });
 SERIES_API = initSeries({ ...baseCtx, onChange: () => { const v = currentView(); if (v === "profil-kar" || v === "profil-adam") renderCurrentView(); } });
-ADS_API = initAds({ ...baseCtx, addToList: f => LISTS_API.addToActive(f) });
+WATCH_API = initWatch({ ...baseCtx, getLists: () => LISTS_API.getLists(), getSeries: () => SERIES_API.getSeries(), getSR: () => SERIES_API.getSR(),
+  onChange: () => renderCurrentView() });
+INSIGHTS_API = initInsights(baseCtx);
+GAME_API = initGame({ ...baseCtx, onChange: () => { const v = currentView(); if (v === "profil-kar" || v === "profil-adam") renderCurrentView(); } });
+ADS_API = initAds({ ...baseCtx, addToList: f => LISTS_API.addToDefault(f) });
 
 (async function init() {
   await loadDbFilms();

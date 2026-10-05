@@ -24,12 +24,15 @@
     <button class="ntab" data-view="oceny">Oceny</button>
     <button class="ntab" data-view="seriale">Seriale</button>
     <button class="ntab" data-view="lista">Listy</button>
+    <button class="ntab" data-view="dzis">Na dziś</button>
     <button class="ntab" data-view="top">Top</button>
     <button class="ntab" data-view="sagi">Sagi</button>
     <button class="ntab" data-view="rezyserzy">Reżyserzy</button>
     <button class="ntab" data-view="profil-kar">💛 Karolina</button>
     <button class="ntab" data-view="profil-adam">💙 Adam</button>
     <button class="ntab" data-view="losuj">Losuj</button>
+    <button class="ntab" data-view="gra">🎯 Gra</button>
+    <button class="ntab" data-view="podsumowania">Podsumowania</button>
     <button class="ntab" data-view="zasady">Zasady oceniania</button>
   </nav>
 </header>
@@ -82,6 +85,10 @@
       <div class="rank-list" id="home-rank">
         <div class="empty">Ocenione filmy pojawią się tutaj.</div>
       </div>
+    </div>
+    <div class="section" id="home-month-sec" style="display:none">
+      <div class="sec-hd"><h2>Podsumowanie miesiąca</h2><button class="see-all" onclick="setView('podsumowania')">Oś czasu →</button></div>
+      <div id="home-month"></div>
     </div>
   </div>
 </div>
@@ -201,6 +208,63 @@
   </div>
   <div class="content" style="padding-top:18px">
     <div id="seriale-body"><div class="empty">Ładowanie…</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: NA DZIŚ
+════════════════════════════════ -->
+<div class="view" id="v-dzis">
+  <div class="phead">
+    <div><h1>Na dziś</h1><p>Wieczór dobrany pod czas, nastrój i nasze platformy</p></div>
+    <button class="btn" onclick="WT.openPlatforms()">📡 Moje platformy · <span id="dz-mine-info"></span></button>
+  </div>
+  <div class="content" style="padding-top:18px">
+    <div class="dz-bar">
+      <label>Ile mamy czasu<select id="dz-time"><option value="0">Bez limitu</option><option value="95">do ok. 1,5 h</option><option value="125">do ok. 2 h</option><option value="155">do ok. 2,5 h</option><option value="185">do ok. 3 h</option></select></label>
+      <label>Nastrój<select id="dz-mood"></select></label>
+      <label>Skąd<select id="dz-source"><option value="lists">Z naszych list</option><option value="series">Seriale (następny odcinek)</option><option value="all">Filmy i seriale</option></select></label>
+      <label class="dz-check"><input type="checkbox" id="dz-mine"> tylko na naszych platformach</label>
+      <button class="btn btn-primary" onclick="WT.pick()">🎟️ Dobierz wieczór</button>
+    </div>
+    <div id="dz-result"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: PODSUMOWANIA
+════════════════════════════════ -->
+<div class="view" id="v-podsumowania">
+  <div class="phead">
+    <div><h1>Podsumowania</h1><p>Oś czasu miesięcy · Wasz rok · zgodność gustów</p></div>
+    <select id="pod-year" style="display:none"></select>
+  </div>
+  <div class="top-tab-bar" id="pod-tabs">
+    <button class="top-tab active" data-ptab="timeline">🕰️ Oś czasu</button>
+    <button class="top-tab" data-ptab="year">🎞️ Wasz rok</button>
+    <button class="top-tab" data-ptab="agree">🤝 Zgodność gustów</button>
+  </div>
+  <div class="content" style="padding-top:20px"><div id="pod-body"></div></div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: GRA (KINODLE)
+════════════════════════════════ -->
+<div class="view" id="v-gra">
+  <div class="phead">
+    <div><h1>🎯 Kinodle</h1><p>Zgadnij dzisiejszy film z naszych ocen · 100 pkt za 1. próbę, −10 za każdą kolejną · 10 prób</p></div>
+  </div>
+  <div class="content" style="padding-top:18px" id="game-root">
+    <div class="gm-top">
+      <div class="gm-whos" id="game-who"></div>
+      <div class="gm-scoreboard" id="game-score"></div>
+    </div>
+    <div id="game-info"></div>
+    <div id="game-play" style="display:none">
+      <input type="text" id="game-input" class="search-input" placeholder="Wpisz tytuł filmu z naszych ocen…" autocomplete="off">
+      <div id="game-sug"></div>
+    </div>
+    <div id="game-board"></div>
   </div>
 </div>
 
@@ -427,6 +491,14 @@
   <div class="search-results" id="seriesSearchResults"></div>
   <div class="dialog-actions"><button class="btn" onclick="document.getElementById('seriesSearchDialog').close()">Zamknij</button></div>
 </dialog>
+
+<dialog id="platformDialog">
+  <h3>Nasze platformy streamingowe</h3>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Zaznacz, z czego korzystamy — pokażemy, co jest u nas dostępne (dane: TMDB / JustWatch).</p>
+  <div class="pf-grid" id="platformList"></div>
+  <div class="dialog-actions"><button class="btn" onclick="document.getElementById('platformDialog').close()">Anuluj</button><button class="btn btn-primary" onclick="WT.savePlatforms()">Zapisz</button></div>
+</dialog>
+<dialog id="monthDialog" class="wide"><div id="monthContent"></div></dialog>
 
 <!-- Reklamy -->
 <dialog id="adDialog" class="wide"><div id="adContent"></div></dialog>
