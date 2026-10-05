@@ -1,10 +1,13 @@
 "use strict";
 import { firebaseConfig, TMDB_KEY } from "./config.js";
+import { initSeries } from "./series.js";
+import { initLists }  from "./lists.js";
+import { initAds }    from "./ads.js";
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import {
   getFirestore, collection, doc,
   setDoc, deleteDoc, updateDoc,
-  onSnapshot, getDoc,
+  onSnapshot, getDoc, getDocs,
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 /* ═══════════════════════════════════════════════
@@ -24,7 +27,9 @@ const COLL = {
 let MOVIES   = {};
 let POOLS    = {}; // poolId -> { name, items: [{id,title,poster,genre,year}] }  // id → film
 let RATINGS  = {};  // id → { kar:{cats,where,noteShort,noteLong}, adam:{...} }
-let WATCHLIST = {}; // id → film
+let WATCHLIST = {}; // id → film  (pochodna: nieobejrzane filmy ze wszystkich list — patrz lists.js)
+let SERIES_API = null, LISTS_API = null, ADS_API = null;
+function syncWatchlist() { WATCHLIST = LISTS_API ? LISTS_API.unwatchedMap() : {}; }
 let DB_FILMS  = { months:{}, showtimes:{}, updated:null }; // data/films.json
 
 let fbError = false;
@@ -38,7 +43,6 @@ function showFbError(e) {
 
 onSnapshot(COLL.movies,   s => { MOVIES   = {}; s.forEach(d => MOVIES[d.id]   = d.data()); renderCurrentView(); }, showFbError);
 onSnapshot(COLL.ratings,  s => { RATINGS  = {}; s.forEach(d => RATINGS[d.id]  = d.data()); renderCurrentView(); }, showFbError);
-onSnapshot(COLL.watchlist,s => { WATCHLIST= {}; s.forEach(d => WATCHLIST[d.id]= d.data()); renderCurrentView(); }, showFbError);
 onSnapshot(COLL.pools, s => { POOLS={}; s.forEach(d=>POOLS[d.id]={id:d.id,...d.data()}); if(currentView()==="losuj") renderLosuj(); }, e=>console.warn("pools:",e));
 let DETAILS = {};
 onSnapshot(COLL.details, s => { s.forEach(d => DETAILS[d.id] = d.data()); if(currentView()==="rezyserzy") renderRezyserzy(); }, e=>console.warn("details:",e));
@@ -185,6 +189,12 @@ async function getCast(movieId, tmdbId) {
 /* ═══════════════════════════════════════════════
    HELPERS
 ═══════════════════════════════════════════════ */
+let _toastT = null;
+function toast(msg) {
+  const t = document.getElementById("toast"); if (!t) return;
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(_toastT); _toastT = setTimeout(() => t.classList.remove("show"), 2800);
+}
 function esc(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
 function fmtDt(iso) {
   const d = new Date(iso); if (isNaN(d)) return iso;
@@ -399,13 +409,7 @@ function renderOceny() {
 }
 
 // ── LISTA ──
-function renderLista() {
-  const films = Object.values(WATCHLIST);
-  document.getElementById("lista-count").textContent = films.length + " filmów";
-  document.getElementById("lista-grid").innerHTML = films.length
-    ? films.map(f => mCard(f, "watchlist")).join("")
-    : "<div class='empty'>Lista jest pusta — dodaj filmy przyciskiem powyżej.</div>";
-}
+function renderLista() { LISTS_API && LISTS_API.renderLista(); }
 
 /* ═══════════════════════════════════════════════
    ACTOR / DIRECTOR RANKINGS
@@ -469,8 +473,6 @@ function renderActorRankings(type) {
 let curTopKey = "joint";
 function renderTop(key) {
   curTopKey = key;
-  if (key === "actors")    { renderActorRankings("actors");    return; }
-  if (key === "directors") { renderActorRankings("directors"); return; }
   let films = Object.values(MOVIES).filter(f => {
     if (key === "kino") return RATINGS[f.id]?.kar?.where === "kino" || RATINGS[f.id]?.adam?.where === "kino";
     if (key === "dom")  return RATINGS[f.id]?.kar?.where === "dom"  || RATINGS[f.id]?.adam?.where === "dom";
@@ -751,7 +753,7 @@ function renderProfile(who) {
   const st = buildProfileStats(who);
   if (!st) {
     el.innerHTML = `<div class="phead"><div><h1>${heart} ${name}</h1></div></div>
-      <div class="content"><div class="empty">Brak ocen — zacznij oceniać filmy!</div></div>`;
+      <div class="content"><div class="empty">Brak ocen filmów — zacznij oceniać!</div>${SERIES_API ? SERIES_API.profileHTML(who) : ""}</div>`;
     return;
   }
   const { total, avg, genreStats, favGenre, top5, bot5, dist, totalMin, cineCount, homeCount, maxAgree, maxDis } = st;
@@ -878,6 +880,7 @@ function renderProfile(who) {
         </div></div>` : ""}
       </div>
     </div>` : ""}
+    ${SERIES_API ? SERIES_API.profileHTML(who) : ""}
   </div>`;
 }
 
@@ -1135,6 +1138,8 @@ function renderZasady() {
       </div>
     </div>`).join("");
 
+  const zs = document.getElementById("zasady-series");
+  if (zs && SERIES_API) zs.innerHTML = SERIES_API.zasadyHTML();
   document.getElementById("zasady-genre").innerHTML = Object.entries(GENRE_CATS).map(([g, cats]) => `
     <div class="genre-cat-card">
       <div class="genre-cat-name">${g}</div>
@@ -1493,22 +1498,20 @@ async function addToMovies(film) {
 }
 async function addToWatchlist(id, film) {
   const f = film || MOVIES[id];
-  if (!f) return;
-  if (WATCHLIST[id]) { alert("Ten film jest już na liście."); return; }
-  if (RATINGS[id])   { alert("Ten film jest już oceniony."); return; }
-  await setDoc(doc(COLL.watchlist, id), f);
-  setView("lista");
+  if (!f || !LISTS_API) return;
+  if (RATINGS[id]) { toast("Ten film jest już oceniony."); return; }
+  await LISTS_API.addToActive(f);
 }
 window.addToWatchlist = addToWatchlist;
 async function removeFromWatchlist(id) {
-  await deleteDoc(doc(COLL.watchlist, id));
+  if (LISTS_API) await LISTS_API.removeEverywhere(id);
 }
 window.removeFromWatchlist = removeFromWatchlist;
 async function deleteMovie(id) {
   if (!confirm("Usunąć film i wszystkie jego oceny?")) return;
   await deleteDoc(doc(COLL.movies, id)).catch(()=>{});
   await deleteDoc(doc(COLL.ratings, id)).catch(()=>{});
-  await deleteDoc(doc(COLL.watchlist, id)).catch(()=>{});
+  if (LISTS_API) await LISTS_API.removeEverywhere(id);
 }
 window.deleteMovie = deleteMovie;
 
@@ -1579,12 +1582,10 @@ async function fetchTmdbTrending() {
   } catch(e) { console.warn("TMDB trending error:", e); return []; }
 }
 
-async function selectTmdb(tmdbId) {
-  document.getElementById("searchResults").innerHTML = `<div class="sr-hint">Pobieram szczegóły…</div>`;
+async function fetchFilm(tmdbId) {
   const det = await tmdbDetails(tmdbId);
-  if (!det) { alert("Nie udało się pobrać szczegółów."); return; }
-
-  const film = {
+  if (!det || !det.title) return null;
+  return {
     id:      "t" + tmdbId,
     tmdbId:  tmdbId,
     title:   det.title || "?",
@@ -1595,7 +1596,19 @@ async function selectTmdb(tmdbId) {
     link:    `https://www.themoviedb.org/movie/${tmdbId}`,
     saga:    det.belongs_to_collection?.name || null,
   };
+}
+// film z listy / reklamy → otwórz formularz oceny (film trafia do MOVIES)
+async function rateMovie(film) {
+  if (!film) return;
+  if (!MOVIES[film.id]) { MOVIES[film.id] = film; await addToMovies(film).catch(() => {}); }
+  openRating(film.id);
+}
+window.rateMovie = rateMovie;
 
+async function selectTmdb(tmdbId) {
+  document.getElementById("searchResults").innerHTML = `<div class="sr-hint">Pobieram szczegóły…</div>`;
+  const film = await fetchFilm(tmdbId);
+  if (!film) { alert("Nie udało się pobrać szczegółów."); return; }
   document.getElementById("searchDialog").close();
   if (searchMode === "ocena") {
     await addToMovies(film);
@@ -1607,9 +1620,6 @@ async function selectTmdb(tmdbId) {
 window.selectTmdb = selectTmdb;
 window.doLosuj    = doLosuj;
 window.openRating = openRating;
-window.rfSetStar  = rfSetStar;
-window.rfSetPerson= rfSetPerson;
-window.rfSetWhere = rfSetWhere;
 
 /* ═══════════════════════════════════════════════
    REPERTUAR Z data/films.json
@@ -1636,7 +1646,7 @@ async function loadDbFilms() {
 /* ═══════════════════════════════════════════════
    ROUTING
 ═══════════════════════════════════════════════ */
-const VIEWS = ["home","seanse","oceny","lista","top","sagi","rezyserzy","profil-kar","profil-adam","losuj","zasady"];
+const VIEWS = ["home","seanse","oceny","seriale","lista","top","sagi","rezyserzy","profil-kar","profil-adam","losuj","zasady"];
 function currentView() {
   const h = location.hash.replace("#", "");
   return VIEWS.includes(h) ? h : "home";
@@ -1657,11 +1667,13 @@ function applyView() {
   renderCurrentView();
 }
 function renderCurrentView() {
+  syncWatchlist();
   const v = currentView();
   if (v === "home")    renderHome();
   else if (v === "seanse")  renderSeanse();
   else if (v === "oceny")   renderOceny();
   else if (v === "lista")   renderLista();
+  else if (v === "seriale") SERIES_API && SERIES_API.renderSeries();
   else if (v === "top")     renderTop(curTopKey);
   else if (v === "sagi")        renderSagi();
   else if (v === "rezyserzy")    renderRezyserzy();
@@ -1700,7 +1712,17 @@ document.querySelector(".top-tab-bar").addEventListener("click", e => {
 /* ═══════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════ */
+const FS = { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs };
+const baseCtx = {
+  fs: FS, db, esc, getLv, pcSVG, TMDB_KEY, toast, jointPct, fetchFilm, rateMovie,
+  getRatings: () => RATINGS, getGenreCats,
+};
+LISTS_API = initLists({ ...baseCtx, onChange: () => { syncWatchlist(); if (currentView() !== "lista") renderCurrentView(); } });
+SERIES_API = initSeries({ ...baseCtx, onChange: () => { const v = currentView(); if (v === "profil-kar" || v === "profil-adam") renderCurrentView(); } });
+ADS_API = initAds({ ...baseCtx, addToList: f => LISTS_API.addToActive(f) });
+
 (async function init() {
   await loadDbFilms();
   applyView();
+  ADS_API.start().catch(e => console.warn("ads:", e));
 })();
