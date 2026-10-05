@@ -523,16 +523,6 @@ dialog.wide { width: min(880px, 97vw); max-height: 94vh; }
 .ls-btns .mc-btn { flex: none; padding: 5px 9px; }
 
 /* ═══════════ REKLAMY ═══════════ */
-.ad-rail { position: fixed; top: 150px; width: 156px; display: none; flex-direction: column; gap: 14px; z-index: 5; }
-.ad-rail.left  { left: calc(50% - 550px - 172px); }
-.ad-rail.right { left: calc(50% + 550px + 16px); }
-@media (min-width: 1470px) { .ad-rail { display: flex; } }
-.ad-card { cursor: pointer; background: linear-gradient(160deg, #241B13, #17110C); border: 1px solid var(--brd); border-radius: 6px 6px 10px 10px; overflow: hidden; position: relative; transition: transform .2s, box-shadow .2s, opacity .35s; animation: adIn .5s ease; }
-.ad-card::before, .ad-card::after { content: ""; position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); border: 1px solid var(--brd); z-index: 3; }
-.ad-card::before { left: -7px; } .ad-card::after { right: -7px; }
-.ad-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,.6); border-color: var(--gold); }
-.ad-card.fade { opacity: 0; transform: scale(.96); }
-@keyframes adIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .ad-label { font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); padding: 5px 8px; }
 .ad-poster { aspect-ratio: 2/3; background: var(--card2); border-top: 1px dashed var(--brd); border-bottom: 1px dashed var(--brd); }
 .ad-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }

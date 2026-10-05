@@ -54,41 +54,6 @@ export function initAds(ctx) {
     return m;
   }
 
-  /* ───── boczne kolumny ───── */
-  function adHTML(m, slot) {
-    return `<div class="ad-card" onclick="ADS.open(${m.id})" data-slot="${slot}">
-      <div class="ad-label">REKLAMA · ${esc(m.tag)}</div>
-      <div class="ad-poster"><img src="${esc(m.poster)}" alt="" loading="lazy"></div>
-      <div class="ad-body">
-        <div class="ad-title">${esc(m.title)}</div>
-        <div class="ad-meta">${m.year ? esc(m.year) : ""}${m.vote ? ` · ★ ${m.vote}` : ""}</div>
-        <div class="ad-cta">Zobacz →</div>
-      </div></div>`;
-  }
-  function fillRail(side) {
-    const rail = el("ad-rail-" + side); if (!rail) return;
-    const cards = [next(), next()].filter(Boolean);
-    rail.innerHTML = cards.map((m, i) => adHTML(m, side + i)).join("");
-  }
-  function rotate() {
-    ["left", "right"].forEach((side, k) => setTimeout(() => {
-      const rail = el("ad-rail-" + side); if (!rail || !rail.children.length) return;
-      const idx = Math.floor(Math.random() * rail.children.length), m = next(); if (!m) return;
-      const old = rail.children[idx];
-      old.classList.add("fade");
-      setTimeout(() => { const t = document.createElement("div"); t.innerHTML = adHTML(m, side + idx); old.replaceWith(t.firstElementChild); }, 350);
-    }, k * 3500));
-  }
-  function positionRails() {
-    const top = document.querySelector(".topbar");
-    let y = top ? top.getBoundingClientRect().bottom : 0;
-    document.querySelectorAll(".view.active .hero, .view.active .phead, .view.active .top-tab-bar").forEach(b => {
-      y = Math.max(y, b.getBoundingClientRect().bottom);
-    });
-    y = Math.max(y, 0) + 14;
-    ["left", "right"].forEach(s => { const r = el("ad-rail-" + s); if (r) r.style.top = y + "px"; });
-  }
-
   /* ───── szczegóły reklamy ───── */
   function find(id) { return POOL.find(m => m.id === id); }
   function open(id) {
@@ -150,13 +115,7 @@ export function initAds(ctx) {
   async function start() {
     await load();
     if (!POOL.length) return;
-    fillRail("left"); fillRail("right");
-    positionRails();
-    window.addEventListener("scroll", positionRails, { passive: true });
-    window.addEventListener("resize", positionRails);
-    window.addEventListener("hashchange", () => setTimeout(positionRails, 60));
-    setInterval(() => { if (!document.hidden) rotate(); }, 15000);
     schedule(25000);
   }
-  return { start, positionRails };
+  return { start };
 }
