@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kineapolis — Cinema City Poznań</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@500;700&display=swap&subset=latin-ext" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════
+     TOPBAR
+════════════════════════════════ -->
+<header class="topbar">
+  <a class="logo-link" href="#home">
+    <img src="logo.png" alt="Kineapolis" class="logo-img">
+  </a>
+  <nav class="nav-links" id="nav">
+    <button class="ntab active" data-view="home">Strona główna</button>
+    <button class="ntab" data-view="seanse">Seanse</button>
+    <button class="ntab" data-view="oceny">Oceny</button>
+    <button class="ntab" data-view="seriale">Seriale</button>
+    <button class="ntab" data-view="lista">Listy</button>
+    <button class="ntab" data-view="top">Top</button>
+    <button class="ntab" data-view="sagi">Sagi</button>
+    <button class="ntab" data-view="rezyserzy">Reżyserzy</button>
+    <button class="ntab" data-view="profil-kar">💛 Karolina</button>
+    <button class="ntab" data-view="profil-adam">💙 Adam</button>
+    <button class="ntab" data-view="losuj">Losuj</button>
+    <button class="ntab" data-view="zasady">Zasady oceniania</button>
+  </nav>
+</header>
+
+<div class="trending">
+  <span class="tr-label">Kineapolis</span>
+  <div class="tr-links">
+    <span onclick="setView('seanse')">Filmy w kinie</span>
+    <span onclick="setView('top')">Nasze ranking</span>
+    <span onclick="setView('seriale')">Seriale</span>
+    <span onclick="setView('lista')">Listy do obejrzenia</span>
+    <span onclick="setView('losuj')">Losowanie</span>
+    <span onclick="setView('zasady')">Jak oceniamy</span>
+  </div>
+</div>
+
+<div id="firebase-error" style="display:none;background:#7A0000;color:#FFD0D0;font-family:monospace;font-size:12px;text-align:center;padding:10px 20px">
+  ⚠️ Błąd połączenia z bazą danych — sprawdź config.js i reguły Firestore.
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: STRONA GŁÓWNA
+════════════════════════════════ -->
+<div class="view active" id="v-home">
+  <div class="hero" id="hero">
+    <div class="hero-main" id="hero-main" onclick="setView('lista')">
+      <div class="hero-bg" id="hero-bg">🎬</div>
+      <div class="hero-overlay" id="hero-overlay">
+        <div class="hero-tag">Teraz w Cinema City Poznań</div>
+        <div class="hero-h1" id="hero-title">Ładowanie…</div>
+        <div class="hero-desc" id="hero-desc"></div>
+      </div>
+    </div>
+    <div class="hero-side" id="hero-side"></div>
+  </div>
+  <div class="content">
+    <div class="section">
+      <div class="sec-hd">
+        <h2>Filmy w Cinema City Poznań</h2>
+        <span class="sub" id="home-now-sub"></span>
+        <button class="see-all" onclick="setView('seanse')">Wszystkie seanse →</button>
+      </div>
+      <div class="movie-grid" id="home-now"></div>
+    </div>
+    <div class="section">
+      <div class="sec-hd">
+        <h2>Nasze najlepiej ocenione</h2>
+        <button class="see-all" onclick="setView('top')">Pełny ranking →</button>
+      </div>
+      <div class="rank-list" id="home-rank">
+        <div class="empty">Ocenione filmy pojawią się tutaj.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: SEANSE
+════════════════════════════════ -->
+<div class="view" id="v-seanse">
+  <div class="phead">
+    <div>
+      <h1>Seanse w Poznaniu</h1>
+      <p>Cinema City Plaza &amp; Kinepolis · aktualizacja co tydzień</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <select id="seanse-date">
+        <option value="">Wszystkie daty</option>
+      </select>
+      <select id="seanse-cinema">
+        <option value="">Oba kina</option>
+        <option value="Plaza">Tylko Plaza</option>
+        <option value="Kinepolis">Tylko Kinepolis</option>
+      </select>
+    </div>
+  </div>
+  <div class="content">
+    <div class="section">
+      <div class="sec-hd"><h2>Grające teraz</h2><span class="sub" id="seanse-count"></span></div>
+      <div id="seanse-list"><div class="empty">Ładowanie repertuaru…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: OCENY
+════════════════════════════════ -->
+<div class="view" id="v-oceny">
+  <div class="phead">
+    <div>
+      <h1>Nasze oceny</h1>
+      <p>8 kategorii bazowych + 2 gatunkowe · maks. 50 pkt</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="oceny-filter-level">
+        <option value="">Wszystkie poziomy</option>
+        <option value="boski">🍿 Boski ≥80%</option>
+        <option value="sol">🍿 Solony 60–79%</option>
+        <option value="kar">🍿 Karmelowy 40–59%</option>
+        <option value="matcha">🍿 Matcha &lt;40%</option>
+      </select>
+      <select id="oceny-filter-where">
+        <option value="">Wszystkie</option>
+        <option value="kino">🎟️ Kino</option>
+        <option value="dom">🏠 Dom</option>
+      </select>
+    </div>
+  </div>
+  <div class="content">
+    <div class="section">
+      <div class="sec-hd">
+        <h2>Ocenione filmy</h2>
+        <span class="sub" id="oceny-count"></span>
+        <button class="see-all" onclick="openSearch('ocena')">+ Oceń film</button>
+      </div>
+      <div class="movie-grid" id="oceny-grid">
+        <div class="empty">Brak ocenionych filmów.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: LISTY OGLĄDANIA
+════════════════════════════════ -->
+<div class="view" id="v-lista">
+  <div class="phead">
+    <div>
+      <h1>Listy oglądania</h1>
+      <p>Własne listy w wybranej kolejności · postęp · „Obejrzane” lub „Obejrzane + oceń”</p>
+    </div>
+    <span class="sub" id="lista-count" style="color:var(--muted);font-size:12px"></span>
+  </div>
+  <div class="top-tab-bar" id="lista-tabs"></div>
+  <div class="content" style="padding-top:18px">
+    <div class="ls-addbar">
+      <input type="text" id="lista-search" class="search-input" placeholder="🔍 Dodaj film do aktywnej listy — wpisz tytuł…" autocomplete="off">
+      <div class="search-results" id="lista-results"></div>
+    </div>
+    <div id="lista-body"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: SERIALE
+════════════════════════════════ -->
+<div class="view" id="v-seriale">
+  <div class="phead">
+    <div>
+      <h1>Seriale</h1>
+      <p>3 tryby oceny: ogólny · sezonowo · odcinkowo · postęp Karoliny i Adama</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span class="sub" id="seriale-count" style="color:var(--muted);font-size:12px"></span>
+      <select id="seriale-status" style="font-size:12px;padding:7px 10px"></select>
+      <select id="seriale-sort" style="font-size:12px;padding:7px 10px">
+        <option value="added">Ostatnio dodane</option>
+        <option value="score">Ocena ↓</option>
+        <option value="title">Tytuł A–Z</option>
+      </select>
+      <button class="btn btn-primary" onclick="SX.openAdd()">+ Dodaj serial</button>
+    </div>
+  </div>
+  <div class="top-tab-bar" id="seriale-tabs">
+    <button class="top-tab active" data-stab="lib">📺 Biblioteka</button>
+    <button class="top-tab" data-stab="joint">🏆 Wspólne</button>
+    <button class="top-tab" data-stab="kar">💛 Karolina</button>
+    <button class="top-tab" data-stab="adam">💙 Adam</button>
+  </div>
+  <div class="content" style="padding-top:18px">
+    <div id="seriale-body"><div class="empty">Ładowanie…</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: TOP
+════════════════════════════════ -->
+<div class="view" id="v-top">
+  <div class="phead">
+    <div>
+      <h1>Rankingi</h1>
+      <p>Top Wspólne · Karoliny · Adama · Top Kino · Top Dom</p>
+    </div>
+  </div>
+  <div class="top-tab-bar">
+    <button class="top-tab active" data-top="joint">🏆 Wspólne</button>
+    <button class="top-tab" data-top="kar">💛 Karolina</button>
+    <button class="top-tab" data-top="adam">💙 Adam</button>
+    <button class="top-tab" data-top="kino">🎟️ Top Kino</button>
+    <button class="top-tab" data-top="dom">🏠 Top Dom</button>
+  </div>
+  <div class="content" style="padding-top:18px">
+    <div class="rank-list" id="top-list">
+      <div class="empty">Brak ocenionych filmów.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: SAGI
+════════════════════════════════ -->
+<div class="view" id="v-sagi">
+  <div class="phead">
+    <div>
+      <h1>Sagi &amp; Uniwersa</h1>
+      <p>Filmy pogrupowane w serie i franchise · w tym nieocenione</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="sagi-sort" onchange="renderSagi()" style="font-size:12px;padding:7px 10px">
+        <option value="avg-desc">Ocena ↓</option>
+        <option value="avg-asc">Ocena ↑</option>
+        <option value="name">Nazwa A–Z</option>
+        <option value="count-desc">Najwięcej filmów</option>
+      </select>
+      <button class="btn btn-primary" onclick="openSagaManager()">+ Nowa saga</button>
+    </div>
+  </div>
+  <div class="content">
+    <div id="sagi-list">
+      <div class="empty">Brak filmów z przypisaną sagą. Kliknij „+ Nowa saga" lub oceń film i przypisz sagę.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Dialog: Saga Manager -->
+<dialog id="sagaDialog" style="width:min(660px,96vw);max-height:92vh;overflow-y:auto">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <h3 id="sagaDialogTitle" style="margin:0">Zarządzaj sagą</h3>
+    <button class="btn" onclick="document.getElementById('sagaDialog').close()">✕</button>
+  </div>
+  <div id="sagaManagerContent"></div>
+</dialog>
+
+<!-- ══════════════════════════════
+     WIDOK: LOSUJ
+════════════════════════════════ -->
+<div class="view" id="v-losuj">
+  <div class="phead">
+    <div>
+      <h1>Losuj film</h1>
+      <p>Cała baza TMDB · lista do obejrzenia · własne pule</p>
+    </div>
+    <button class="btn" id="manage-pools-btn" onclick="openPoolManager()">Zarządzaj pulami (0)</button>
+  </div>
+  <div class="content">
+    <div class="losuj-center">
+      <div class="losuj-filters">
+        <select id="losuj-genre" style="flex:1">
+          <option value="">Wszystkie gatunki</option>
+          <option>Akcja</option><option>Animacja</option><option>Dokumentalny</option>
+          <option>Dramat</option><option>Fantasy</option><option>Horror</option>
+          <option>Komedia</option><option>Romans</option><option>Sci-Fi</option><option>Thriller</option>
+        </select>
+        <select id="losuj-source" style="flex:1.5">
+          <option value="tmdb">🎬 Cała baza TMDB</option>
+          <option value="lista">📋 Lista do obejrzenia</option>
+          <option value="rated">⭐ Tylko ocenione</option>
+        </select>
+      </div>
+      <button class="draw-btn" id="draw-btn" onclick="doLosuj()">🎲 LOSUJ!</button>
+      <div class="draw-res" id="draw-res">
+        <div class="dr-label">Wylosowano!</div>
+        <div class="dr-content">
+          <div class="dr-poster" id="dr-poster">🎬</div>
+          <div>
+            <div class="dr-title" id="dr-title"></div>
+            <div class="dr-meta" id="dr-meta"></div>
+            <div class="dr-btns">
+              <button class="dr-btn p" id="dr-rate-btn">Oceń →</button>
+              <button class="dr-btn s" onclick="doLosuj()">Losuj ponownie</button>
+              <button class="dr-btn s" id="dr-add-btn">+ Do listy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     DIALOG: Zarządzanie pulami
+════════════════════════════════ -->
+<dialog id="poolDialog" style="width:min(640px,96vw);max-height:90vh;overflow-y:auto">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <h3 style="margin:0">Własne pule do losowania</h3>
+    <button class="btn" onclick="document.getElementById('poolDialog').close()">✕</button>
+  </div>
+  <div id="poolManagerContent"></div>
+</dialog>
+
+<!-- ══════════════════════════════
+     WIDOK: ZASADY OCENIANIA
+════════════════════════════════ -->
+<div class="view" id="v-zasady">
+  <div class="phead">
+    <div>
+      <h1>Zasady oceniania</h1>
+      <p>System punktowy · maks. 50 pkt · 8 kategorii bazowych + 2 gatunkowe</p>
+    </div>
+  </div>
+  <div class="content">
+    <div class="zasady-levels" id="zasady-levels"></div>
+    <div id="zasady-cats"></div>
+    <div style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:16px;margin-top:14px">
+      <div style="font-size:15px;font-weight:800;color:var(--ink);margin-bottom:12px">Kategorie gatunkowe (+2 kategorie = maks. 50 pkt)</div>
+      <div class="genre-cats-grid" id="zasady-genre"></div>
+    </div>
+    <div id="zasady-series" style="margin-top:30px"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     DIALOGI
+════════════════════════════════ -->
+
+<!-- Wyszukiwarka filmów -->
+<dialog id="searchDialog">
+  <h3 id="searchTitle">Dodaj film</h3>
+  <input type="text" id="searchInput" class="search-input" placeholder="Wpisz tytuł (min. 2 znaki)…" autocomplete="off">
+  <div class="search-results" id="searchResults"></div>
+  <div class="dialog-actions">
+    <button class="btn" onclick="document.getElementById('searchDialog').close()">Zamknij</button>
+  </div>
+</dialog>
+
+<!-- Formularz oceny -->
+<dialog id="ratingDialog">
+  <h3 id="ratingTitle">Oceń film</h3>
+  <div id="ratingForm"></div>
+</dialog>
+
+<!-- Szczegóły filmu -->
+<dialog id="detailDialog">
+  <div id="detailContent"></div>
+  <div class="dialog-actions" style="margin-top:14px">
+    <button class="btn" onclick="document.getElementById('detailDialog').close()">Zamknij</button>
+  </div>
+</dialog>
+
+<!-- Notatka -->
+<dialog id="noteDialog">
+  <h3 id="noteDialogTitle">Notatka</h3>
+  <label>Krótka notatka (widoczna na karcie, ~80 znaków)
+    <input type="text" id="noteShort" maxlength="80" placeholder="np. świetna muzyka, za długi finał…">
+  </label>
+  <label style="margin-top:8px">Pełna recenzja (widoczna w szczegółach)
+    <textarea id="noteLong" rows="4" style="resize:vertical;margin-top:4px;background:var(--card2);border:1px solid var(--brd);border-radius:7px;color:var(--ink);padding:9px 10px;font-size:14px;width:100%" placeholder="Twoja pełna recenzja…"></textarea>
+  </label>
+  <div class="dialog-actions">
+    <button class="btn" onclick="document.getElementById('noteDialog').close()">Anuluj</button>
+    <button class="btn btn-primary" id="noteSaveBtn">Zapisz</button>
+  </div>
+</dialog>
+
+<!-- ══════════════════════════════
+     WIDOK: REŻYSERZY
+════════════════════════════════ -->
+<div class="view" id="v-rezyserzy">
+  <div class="phead">
+    <div>
+      <h1>Reżyserzy</h1>
+      <p>Filmy pogrupowane wg reżysera</p>
+    </div>
+    <select id="rez-sort" onchange="renderRezyserzy()" style="font-size:12px;padding:7px 10px">
+      <option value="avg-desc">Ocena ↓</option>
+      <option value="avg-asc">Ocena ↑</option>
+      <option value="name">Nazwa A–Z</option>
+      <option value="count-desc">Najwięcej filmów</option>
+    </select>
+  </div>
+  <div class="content">
+    <div id="rez-list"><div class="empty">Ładowanie danych o reżyserach…</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: PROFIL KAROLINY
+════════════════════════════════ -->
+<div class="view" id="v-profil-kar">
+  <div id="profile-kar-content"></div>
+</div>
+
+<!-- ══════════════════════════════
+     WIDOK: PROFIL ADAMA
+════════════════════════════════ -->
+<div class="view" id="v-profil-adam">
+  <div id="profile-adam-content"></div>
+</div>
+
+<!-- Seriale: szczegóły i wyszukiwarka -->
+<dialog id="seriesDialog" class="wide"><div id="seriesContent"></div></dialog>
+<dialog id="seriesSearchDialog">
+  <h3>Dodaj serial</h3>
+  <input type="text" id="seriesSearchInput" class="search-input" placeholder="Wpisz tytuł serialu (min. 2 znaki)…" autocomplete="off">
+  <div class="search-results" id="seriesSearchResults"></div>
+  <div class="dialog-actions"><button class="btn" onclick="document.getElementById('seriesSearchDialog').close()">Zamknij</button></div>
+</dialog>
+
+<!-- Reklamy -->
+<dialog id="adDialog" class="wide"><div id="adContent"></div></dialog>
+<aside class="ad-rail left" id="ad-rail-left" aria-label="Reklama"></aside>
+<aside class="ad-rail right" id="ad-rail-right" aria-label="Reklama"></aside>
+<div class="ad-popup" id="ad-popup"></div>
+<div class="toast" id="toast"></div>
+
+<footer>Kineapolis · Prywatna baza filmowa Karoliny 💛 &amp; Adama 💙 · Cinema City Poznań</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
