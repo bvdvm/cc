@@ -1,1 +1,1458 @@
-{"months":{},"showtimes":{},"updated":null}
+{
+ "months": {
+  "2026-10": {
+   "films": {
+    "7460s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "7460s2r",
+     "length": 172,
+     "link": "https://www.cinema-city.pl/filmy/odyseja/7460s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/7460S2R.jpg",
+     "title": "Odyseja",
+     "year": "2026"
+    },
+    "7941d2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "7941d2r",
+     "length": 99,
+     "link": "https://www.cinema-city.pl/filmy/marsupilami/7941d2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/7941D2R.jpg",
+     "title": "Marsupilami",
+     "year": "2026"
+    },
+    "8085s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8085s2r",
+     "length": 145,
+     "link": "https://www.cinema-city.pl/filmy/spider-man-calkiem-nowy-dzien/8085s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8085S2R.jpg",
+     "title": "Spider-Man: Całkiem nowy dzień",
+     "year": "2026"
+    },
+    "8095d2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8095d2r",
+     "length": 110,
+     "link": "https://www.cinema-city.pl/filmy/zapomniana-wyspa/8095d2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8095D2R.jpg",
+     "title": "Zapomniana wyspa",
+     "year": "2026"
+    },
+    "8134s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8134s2r",
+     "length": 109,
+     "link": "https://www.cinema-city.pl/filmy/obsesja/8134s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8134S2R.jpg",
+     "title": "Obsesja",
+     "year": "2025"
+    },
+    "8182s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-16",
+     "id": "8182s2r",
+     "length": 120,
+     "link": "https://www.cinema-city.pl/filmy/street-fighter-uliczny-wojownik/8182s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8182S2R.jpg",
+     "title": "Street Fighter. Uliczny wojownik",
+     "year": "2026"
+    },
+    "8182s2r1": {
+     "cinemas": [
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-16",
+     "id": "8182s2r1",
+     "length": 120,
+     "link": "https://www.cinema-city.pl/filmy/street-fighter-uliczny-wojownik-ukrains/8182s2r1",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8182S2R1.jpg",
+     "title": "Street Fighter. Uliczny wojownik ukraińs",
+     "year": "2026"
+    },
+    "8183s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8183s2r",
+     "length": 106,
+     "link": "https://www.cinema-city.pl/filmy/naznaczony-wyjscie-z-mrocznego-wymiaru/8183s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8183S2R.jpg",
+     "title": "Naznaczony: Wyjście z mrocznego wymiaru",
+     "year": "2026"
+    },
+    "8190s3r1": {
+     "cinemas": [
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-06",
+     "id": "8190s3r1",
+     "length": 102,
+     "link": "https://www.cinema-city.pl/filmy/500-mil-lektor/8190s3r1",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8190S3R1.jpg",
+     "title": "500 mil (lektor)",
+     "year": "2025"
+    },
+    "8220s2r": {
+     "cinemas": [
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-06",
+     "id": "8220s2r",
+     "length": 129,
+     "link": "https://www.cinema-city.pl/filmy/totalna-magia-2/8220s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8220S2R.jpg",
+     "title": "Totalna magia 2",
+     "year": "2026"
+    },
+    "8221s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-09",
+     "id": "8221s2r",
+     "length": 129,
+     "link": "https://www.cinema-city.pl/filmy/digger/8221s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8221S2R.jpg",
+     "title": "Digger",
+     "year": "2026"
+    },
+    "8233d2r": {
+     "cinemas": [
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-06",
+     "id": "8233d2r",
+     "length": 96,
+     "link": "https://www.cinema-city.pl/filmy/folwark-zwierzecy/8233d2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8233D2R.jpg",
+     "title": "Folwark zwierzęcy",
+     "year": "2026"
+    },
+    "8244s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8244s2r",
+     "length": 117,
+     "link": "https://www.cinema-city.pl/filmy/verity-coraz-wiekszy-mrok/8244s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8244S2R.jpg",
+     "title": "Verity. Coraz większy mrok",
+     "year": "2026"
+    },
+    "8244s2r1": {
+     "cinemas": [
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8244s2r1",
+     "length": 117,
+     "link": "https://www.cinema-city.pl/filmy/verity-coraz-wiekszy-mrok-ukrainski-dubbing/8244s2r1",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8244S2R1.jpg",
+     "title": "Verity. Coraz większy mrok ukraiński dubbing",
+     "year": "2026"
+    },
+    "8294o2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-18",
+     "id": "8294o2r",
+     "length": 185,
+     "link": "https://www.cinema-city.pl/filmy/andre-rieu-niech-zyje-maastricht/8294o2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8294O2R.jpg",
+     "title": "Andre Rieu. Niech żyje Maastricht!",
+     "year": "2026"
+    },
+    "8312d2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-06",
+     "id": "8312d2r",
+     "length": 94,
+     "link": "https://www.cinema-city.pl/filmy/tedi-i-magiczna-lampa/8312d2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8312D2R.jpg",
+     "title": "Tedi i magiczna lampa",
+     "year": "2026"
+    },
+    "8314s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8314s2r",
+     "length": 101,
+     "link": "https://www.cinema-city.pl/filmy/w-sercu-dziczy/8314s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8314S2R.jpg",
+     "title": "W sercu dziczy",
+     "year": "2026"
+    },
+    "8326s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8326s2r",
+     "length": 95,
+     "link": "https://www.cinema-city.pl/filmy/rolling-loud-film/8326s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8326S2R.jpg",
+     "title": "Rolling Loud. Film",
+     "year": "2026"
+    },
+    "8330s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-09",
+     "id": "8330s2r",
+     "length": 113,
+     "link": "https://www.cinema-city.pl/filmy/the-social-reckoning-w-sieci-konsekwencji/8330s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8330S2R.jpg",
+     "title": "The Social Reckoning. W sieci konsekwencji",
+     "year": "2026"
+    },
+    "8330s2r1": {
+     "cinemas": [
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-09",
+     "id": "8330s2r1",
+     "length": 113,
+     "link": "https://www.cinema-city.pl/filmy/the-social-reckoning-w-sieci-konsekwencji-ukrainski-dubbing/8330s2r1",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8330S2R1.jpg",
+     "title": "The Social Reckoning. W sieci konsekwencji ukraiński dubbing",
+     "year": "2026"
+    },
+    "8377d2r": {
+     "cinemas": [
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-08",
+     "id": "8377d2r",
+     "length": 116,
+     "link": "https://www.cinema-city.pl/filmy/auta-re-release/8377d2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8377D2R.jpg",
+     "title": "Auta (re-release)",
+     "year": "2006"
+    },
+    "8383s2r": {
+     "cinemas": [
+      "Poznań - Plaza",
+      "Poznań - Kinepolis"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8383s2r",
+     "length": 184,
+     "link": "https://www.cinema-city.pl/filmy/avengers-koniec-gry-wersja-rozszerzona/8383s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8383S2R.jpg",
+     "title": "Avengers: Koniec gry – wersja rozszerzona",
+     "year": null
+    },
+    "8383s2r1": {
+     "cinemas": [
+      "Poznań - Kinepolis"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8383s2r1",
+     "length": 186,
+     "link": "https://www.cinema-city.pl/filmy/avengers-koniec-gry-wersja-rozszerzona-infinity-vision/8383s2r1",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8383S2R1.jpg",
+     "title": "Avengers: Koniec gry – wersja rozszerzona Infinity Vision",
+     "year": null
+    },
+    "8384o2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8384o2r",
+     "length": 165,
+     "link": "https://www.cinema-city.pl/filmy/lalka/8384o2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8384O2R.jpg",
+     "title": "Lalka",
+     "year": "2026"
+    },
+    "8423s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8423s2r",
+     "length": 98,
+     "link": "https://www.cinema-city.pl/filmy/nie-patrz-w-dol-2/8423s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8423S2R.jpg",
+     "title": "Nie patrz w dół 2",
+     "year": "2026"
+    },
+    "8432s2r": {
+     "cinemas": [
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-06",
+     "id": "8432s2r",
+     "length": 106,
+     "link": "https://www.cinema-city.pl/filmy/tony/8432s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8432S2R.jpg",
+     "title": "Tony",
+     "year": "2026"
+    },
+    "8444s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-07",
+     "id": "8444s2r",
+     "length": 97,
+     "link": "https://www.cinema-city.pl/filmy/queen-budapest/8444s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8444S2R.jpg",
+     "title": "Queen Budapest",
+     "year": "2026"
+    },
+    "8447o2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8447o2r",
+     "length": 112,
+     "link": "https://www.cinema-city.pl/filmy/100-dni-misja-zeus/8447o2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8447O2R.jpg",
+     "title": "100 dni: Misja Zeus",
+     "year": "2026"
+    },
+    "8453o2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8453o2r",
+     "length": 75,
+     "link": "https://www.cinema-city.pl/filmy/dzien-dziecka-ksiedza-jana-kaczkowskiego/8453o2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8453O2R.jpg",
+     "title": "Dzień dziecka księdza Jana Kaczkowskiego",
+     "year": "2026"
+    },
+    "8454s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8454s2r",
+     "length": 100,
+     "link": "https://www.cinema-city.pl/filmy/niebo-nad-normandia/8454s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8454S2R.jpg",
+     "title": "Niebo nad Normandią",
+     "year": "2025"
+    },
+    "8456d2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8456d2r",
+     "length": 88,
+     "link": "https://www.cinema-city.pl/filmy/luna-i-rozgadana-swinka/8456d2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8456D2R.jpg",
+     "title": "Luna i rozgadana świnka",
+     "year": "2025"
+    },
+    "8459s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8459s2r",
+     "length": 93,
+     "link": "https://www.cinema-city.pl/filmy/resident-evil/8459s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8459S2R.jpg",
+     "title": "Resident Evil",
+     "year": "2026"
+    },
+    "8494s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-12",
+     "id": "8494s2r",
+     "length": 100,
+     "link": "https://www.cinema-city.pl/filmy/always-lalisa/8494s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8494S2R.jpg",
+     "title": "Always Lalisa",
+     "year": "2026"
+    },
+    "8496o2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8496o2r",
+     "length": 86,
+     "link": "https://www.cinema-city.pl/filmy/mistyczka/8496o2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8496O2R.jpg",
+     "title": "Mistyczka",
+     "year": "2026"
+    },
+    "8500s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-09",
+     "id": "8500s2r",
+     "length": 110,
+     "link": "https://www.cinema-city.pl/filmy/primetime/8500s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8500S2R.jpg",
+     "title": "Primetime",
+     "year": "2026"
+    },
+    "8506s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8506s2r",
+     "length": 82,
+     "link": "https://www.cinema-city.pl/filmy/lalka-ale-to-horror/8506s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8506S2R.jpg",
+     "title": "Lalka (ale to horror)",
+     "year": "2025"
+    },
+    "8543s2r": {
+     "cinemas": [
+      "Poznań - Kinepolis",
+      "Poznań - Plaza"
+     ],
+     "firstSeen": "2026-10-05",
+     "id": "8543s2r",
+     "length": 144,
+     "link": "https://www.cinema-city.pl/filmy/casino-royale/8543s2r",
+     "poster": "https://www.cinema-city.pl/xmedia-cw/repo/feats/posters/8543S2R.jpg",
+     "title": "Casino Royale",
+     "year": "2006"
+    }
+   }
+  }
+ },
+ "showtimes": {
+  "7460s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T20:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T12:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T20:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T11:45:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T19:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T12:10:00"
+   }
+  ],
+  "7941d2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T16:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T16:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T12:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T16:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T16:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T16:10:00"
+   }
+  ],
+  "8085s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T19:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T19:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T13:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T15:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T19:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T19:40:00"
+   }
+  ],
+  "8095d2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T16:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T18:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T18:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T13:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T16:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T18:00:00"
+   }
+  ],
+  "8134s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T22:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T22:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T22:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-08T22:00:00"
+   }
+  ],
+  "8182s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-16T13:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-16T16:15:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-16T19:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-16T21:45:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-16T15:15:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-16T18:00:00"
+   }
+  ],
+  "8182s2r1": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-16T17:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-17T17:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-18T12:20:00"
+   }
+  ],
+  "8183s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T22:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T18:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T18:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-08T18:50:00"
+   }
+  ],
+  "8190s3r1": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T10:00:00"
+   }
+  ],
+  "8220s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T18:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-07T18:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-08T18:40:00"
+   }
+  ],
+  "8221s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T13:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T16:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T19:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T20:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T22:20:00"
+   },
+   {
+    "attrs": [
+     "imax"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-09T10:30:00"
+   }
+  ],
+  "8233d2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T11:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T12:45:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-07T12:00:00"
+   }
+  ],
+  "8244s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T18:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T20:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T21:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T18:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T21:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T12:20:00"
+   }
+  ],
+  "8244s2r1": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T21:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T21:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-07T21:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-08T21:30:00"
+   }
+  ],
+  "8294o2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-18T15:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-18T15:00:00"
+   }
+  ],
+  "8312d2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T13:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T15:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T12:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T13:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T15:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-07T12:10:00"
+   }
+  ],
+  "8314s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T17:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T17:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T19:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T21:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T17:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T20:00:00"
+   }
+  ],
+  "8326s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T17:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T19:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T22:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T17:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T19:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T22:00:00"
+   }
+  ],
+  "8330s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T12:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T15:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T17:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T20:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-09T14:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-09T17:20:00"
+   }
+  ],
+  "8330s2r1": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-09T18:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-10T18:30:00"
+   }
+  ],
+  "8377d2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-08T09:30:00"
+   }
+  ],
+  "8383s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T16:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T20:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T15:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T21:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T09:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T16:40:00"
+   }
+  ],
+  "8383s2r1": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T16:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T20:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T16:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T20:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T15:40:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T21:20:00"
+   }
+  ],
+  "8384o2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T18:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T18:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T19:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T20:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T21:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T17:00:00"
+   }
+  ],
+  "8423s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T21:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T21:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T21:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-08T21:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-08T12:15:00"
+   }
+  ],
+  "8432s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T11:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-07T11:30:00"
+   }
+  ],
+  "8444s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T19:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T20:00:00"
+   },
+   {
+    "attrs": [
+     "imax"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-07T19:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-10T17:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-10T18:00:00"
+   },
+   {
+    "attrs": [
+     "imax"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-10T17:00:00"
+   }
+  ],
+  "8447o2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T17:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T21:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T17:25:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T17:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T21:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T13:15:00"
+   }
+  ],
+  "8453o2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T20:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T15:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T20:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T15:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T15:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T20:00:00"
+   }
+  ],
+  "8454s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T18:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T22:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T18:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T22:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T18:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T22:00:00"
+   }
+  ],
+  "8456d2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T17:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T12:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T17:10:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T10:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T12:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T17:10:00"
+   }
+  ],
+  "8459s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T18:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T19:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T20:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T21:45:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T16:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T19:10:00"
+   }
+  ],
+  "8494s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-12T19:30:00"
+   },
+   {
+    "attrs": [
+     "imax"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-12T19:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-14T19:30:00"
+   },
+   {
+    "attrs": [
+     "imax"
+    ],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-14T21:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-17T19:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-17T19:00:00"
+   }
+  ],
+  "8496o2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T17:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T17:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-06T09:45:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T17:50:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-07T10:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-08T17:50:00"
+   }
+  ],
+  "8500s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T14:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T16:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T18:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T19:00:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-09T21:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-09T17:00:00"
+   }
+  ],
+  "8506s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T19:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-06T19:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-07T19:20:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-08T19:20:00"
+   }
+  ],
+  "8543s2r": [
+   {
+    "attrs": [],
+    "cinema": "Poznań - Kinepolis",
+    "dt": "2026-10-05T19:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T18:30:00"
+   },
+   {
+    "attrs": [],
+    "cinema": "Poznań - Plaza",
+    "dt": "2026-10-05T19:50:00"
+   }
+  ]
+ },
+ "updated": "2026-10-05"
+}
