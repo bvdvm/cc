@@ -474,5 +474,6 @@ export function initSeries(ctx) {
       <div class="zasady-cat"><div class="zasady-cat-body">${L.EPISODE_LABELS.map((d, n) => `<div class="zasady-pt"><div class="zasady-pt-num">${n} ★</div><div class="zasady-pt-desc">${esc(d)}</div></div>`).join("")}</div></div>`;
   }
 
-  return { renderSeries, profileHTML, zasadyHTML, openAdd, getSeries: () => SERIES, getSR: () => SR };
+  return { renderSeries, profileHTML, zasadyHTML, openAdd, getSeries: () => SERIES, getSR: () => SR,
+    scores: () => { const out = []; for (const id of Object.keys(SERIES)) for (const w of ["kar", "adam"]) { if (person(id, w).notSeen) continue; const p = pctOf(id, w); if (p !== null) out.push({ id, who: w, pct: p }); } return out; } };
 }

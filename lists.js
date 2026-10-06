@@ -1,7 +1,7 @@
 // lists.js — nazwane listy oglądania z kolejnością, postępem i „Obejrzane” / „Obejrzane + oceń”
 
 export function initLists(ctx) {
-  const { fs, db, esc, getLv, pcSVG, TMDB_KEY, toast, getRatings, fetchFilm, rateMovie } = ctx;
+  const { fs, db, esc, getLv, pcSVG, TMDB_KEY, toast, getRatings, getMovies, fetchFilm, rateMovie, setRewatch } = ctx;
   const { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs } = fs;
   const CL = collection(db, "kLists");
   const COLD = collection(db, "kWatchlist"); // stara lista — jednorazowa migracja
@@ -10,7 +10,10 @@ export function initLists(ctx) {
   const pending = new Set();
   const ui = { active: "default", hideDone: false, onlyMine: false };
   let loaded = false, migrating = false;
+  const RW = "__rewatch";
   const el = id => document.getElementById(id);
+  const rewatchItems = () => Object.values(getMovies() || {}).filter(f => f.rewatch && f.rewatch.on).sort((a, b) => String(a.rewatch.since || "").localeCompare(String(b.rewatch.since || "")))
+    .map(f => ({ id: f.id, tmdbId: f.tmdbId, title: f.title, poster: f.poster, year: f.year, genre: f.genre, length: f.length, rewatch: true }));
   const hasKey = () => TMDB_KEY && !String(TMDB_KEY).startsWith("WSTAW");
 
   onSnapshot(CL, async s => {
@@ -18,7 +21,7 @@ export function initLists(ctx) {
     s.forEach(d => { n[d.id] = pending.has(d.id) && LISTS[d.id] ? LISTS[d.id] : d.data(); });
     for (const id of pending) if (!n[id] && LISTS[id]) n[id] = LISTS[id];
     LISTS = n;
-    if (!ui.active || !LISTS[ui.active]) ui.active = LISTS.default ? "default" : Object.keys(LISTS)[0] || "default";
+    if (!ui.active || (ui.active !== RW && !LISTS[ui.active])) ui.active = LISTS.default ? "default" : Object.keys(LISTS)[0] || "default";
     if (!loaded) { loaded = true; if (!LISTS.default) await migrate(); }
     changed();
   }, e => console.warn("kLists:", e));
@@ -119,6 +122,8 @@ export function initLists(ctx) {
       for (const [lid, l] of Object.entries(LISTS)) { const o = l.items.find(x => x.id === id); if (o && o.watched) { o.watched = false; o.watchedAt = null; await save(lid); } }
     },
     async copyTo(id, lid) { const it = find(ui.active, id); if (it && lid) await addTo(lid, it); },
+    rewatch(id) { const f = (getMovies() || {})[id]; if (f) rateMovie(f); },
+    async unRewatch(id) { await setRewatch(id, false); },
     rate(id) { const it = find(ui.active, id); if (it) rateMovie(it); },
     async remove(id) { const l = LISTS[ui.active]; if (!l) return; l.items = l.items.filter(i => i.id !== id); await save(ui.active); },
     toggleMine() { ui.onlyMine = !ui.onlyMine; renderLista(); },
@@ -165,7 +170,8 @@ export function initLists(ctx) {
     tabs.innerHTML = ids.map(id => {
       const l = LISTS[id], done = l.items.filter(isWatched).length;
       return `<button class="top-tab ${id === ui.active ? "active" : ""}" onclick="LS.pick('${id}')">📋 ${esc(l.name)} <small>${done}/${l.items.length}</small></button>`;
-    }).join("") + `<button class="top-tab" onclick="LS.create()">+ Nowa lista</button>`;
+    }).join("") + `<button class="top-tab ${ui.active === RW ? "active" : ""}" onclick="LS.pick('${RW}')">🔁 Rewatch <small>${rewatchItems().length}</small></button><button class="top-tab" onclick="LS.create()">+ Nowa lista</button>`;
+    if (ui.active === RW) { renderRewatch(body); ctx.afterRender && ctx.afterRender(body); return; }
 
     const l = LISTS[ui.active] || LISTS[ids[0]];
     const items = l.items || [];
@@ -218,5 +224,23 @@ export function initLists(ctx) {
     ctx.afterRender && ctx.afterRender(body);
 }
 
-  return { renderLista, unwatchedMap, addTo, addToDefault, removeEverywhere, getLists: () => LISTS };
+  function renderRewatch(body) {
+    const items = rewatchItems(), R = getRatings() || {}, M = getMovies() || {};
+    const cnt = el("lista-count"); if (cnt) cnt.textContent = items.length + " filmów";
+    body.innerHTML = `<div class="ls-head"><div class="ls-title">🔁 Rewatch</div></div>
+      <div class="sx-hint">Filmy, do których chcemy wrócić. Po seansie ocenicie je od nowa, a poprzednia ocena zostaje w historii filmu. Dodasz film przyciskiem „🔁 Rewatch” w jego szczegółach.</div>
+      ${items.length ? `<div class="ls-items">${items.map((it, i) => {
+        const r = R[it.id] || {}, kP = ctx.personScore(r.kar), aP = ctx.personScore(r.adam), hist = (M[it.id] && M[it.id].history || []).length;
+        return `<div class="ls-item">
+          <div class="ls-num">${i + 1}</div>
+          <div class="ls-poster">${it.poster ? `<img src="${esc(it.poster)}" alt="" loading="lazy">` : "🎬"}</div>
+          <div class="ls-info"><div class="ls-name">${esc(it.title)}</div>
+            <div class="ls-meta">${[it.year, it.genre].filter(Boolean).map(esc).join(" · ")}${kP !== null ? ` · 💛 ${kP}%` : ""}${aP !== null ? ` · 💙 ${aP}%` : ""}${hist ? ` · ${hist + 1}. raz` : ""}</div>
+            ${it.tmdbId ? `<div class="ls-wh" data-wh="movie_${esc(it.tmdbId)}" data-mine-badge></div>` : ""}</div>
+          <div class="ls-btns"><button class="mc-btn primary" onclick="LS.rewatch('${esc(it.id)}')">Oglądamy → oceń ponownie</button>
+            <button class="mc-btn" onclick="LS.unRewatch('${esc(it.id)}')">✕</button></div></div>`;
+      }).join("")}</div>` : `<div class="empty">Brak filmów w Rewatch. Otwórz oceniony film i kliknij „🔁 Rewatch”.</div>`}`;
+  }
+
+  return { renderLista, unwatchedMap, addTo, addToDefault, removeEverywhere, getLists: () => LISTS, getActive: () => ui.active === RW ? { id: RW, name: "Rewatch", items: rewatchItems() } : ({ id: ui.active, ...(LISTS[ui.active] || { items: [] }) }) };
 }

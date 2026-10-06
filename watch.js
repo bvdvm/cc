@@ -12,7 +12,7 @@ const MOODS = {
 const LOGO = "https://image.tmdb.org/t/p/w92";
 
 export function initWatch(ctx) {
-  const { fs, db, esc, TMDB_KEY, toast, getLists, getSeries, getSR, rateMovie, getRatings } = ctx;
+  const { fs, db, esc, TMDB_KEY, toast, getLists, getActiveList, getSeries, getSR, rateMovie, getRatings } = ctx;
   const { collection, doc, setDoc, onSnapshot } = fs;
   const CSET = collection(db, "kSettings");
   const el = id => document.getElementById(id);
@@ -20,7 +20,7 @@ export function initWatch(ctx) {
 
   let MINE = new Set();             // id platform, które mamy
   const CACHE = {};                 // "movie_123" → {flatrate,rent,buy}
-  const ui = { mood: "any", time: "0", source: "lists", onlyMine: false, picks: [], busy: false };
+  const ui = { mood: "any", time: "0", source: "list", onlyMine: false, picks: [], busy: false };
 
   onSnapshot(CSET, s => {
     s.forEach(d => { if (d.id === "main") MINE = new Set((d.data().providers || []).map(Number)); });
@@ -90,16 +90,16 @@ export function initWatch(ctx) {
   function candidates() {
     const out = [];
     const ratings = getRatings() || {};
-    const lists = getLists();
     const seen = new Set();
-    if (ui.source === "lists" || ui.source === "all") {
-      for (const l of Object.values(lists)) for (const it of l.items || []) {
-        if (it.watched || ratings[it.id] || seen.has(it.id)) continue;
+    if (ui.source === "list" || ui.source === "lists") {
+      const src = ui.source === "list" ? [getActiveList()] : Object.values(getLists());
+      for (const l of src) for (const it of l.items || []) {
+        if ((!it.rewatch && (it.watched || ratings[it.id])) || seen.has(it.id)) continue;
         seen.add(it.id);
         out.push({ kind: "film", id: it.id, tmdbId: it.tmdbId, title: it.title, poster: it.poster, year: it.year, genre: it.genre, minutes: it.length || null, film: it });
       }
     }
-    if (ui.source === "series" || ui.source === "all") {
+    if (ui.source === "series") {
       const SERIES = getSeries(), SR = getSR();
       for (const [id, s] of Object.entries(SERIES)) {
         const st = L.jointStatus(SR[id], s.seasons);
@@ -143,8 +143,9 @@ export function initWatch(ctx) {
     const box = el("dz-result"); if (!box) return;
     const mineTxt = MINE.size ? `Mamy ${MINE.size} platform${MINE.size === 1 ? "ę" : MINE.size < 5 ? "y" : ""}` : "Nie wybrano platform";
     const btn = el("dz-mine-info"); if (btn) btn.textContent = mineTxt;
+    if (poolSize === undefined && !ui.picks.length) { box.innerHTML = ""; return; }
     if (!ui.picks.length) {
-      box.innerHTML = poolSize === undefined ? "" : `<div class="empty">Nic nie pasuje do tych kryteriów${ui.onlyMine ? " (albo nic nie ma na naszych platformach)" : ""}. Poluzuj filtry albo dodaj filmy do listy.</div>`;
+      box.innerHTML = poolSize === undefined ? "" : `<div class="empty">Nic nie pasuje do tych kryteriów${ui.onlyMine ? " (albo nic nie ma na naszych platformach)" : ""}. Poluzuj filtry albo zmień źródło.</div>`;
       return;
     }
     box.innerHTML = `<div class="dz-grid">${ui.picks.map((c, i) => `<div class="dz-card">

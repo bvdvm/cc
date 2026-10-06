@@ -2,10 +2,10 @@
 import { firebaseConfig, TMDB_KEY } from "./config.js";
 import { initSeries } from "./series.js";
 import { initLists }  from "./lists.js";
-import { initAds }    from "./ads.js";
 import { initWatch }  from "./watch.js";
 import { initInsights } from "./insights.js";
 import { initGame }   from "./game.js";
+import { initQuick }  from "./quick.js";
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import {
   getFirestore, collection, doc,
@@ -24,16 +24,16 @@ const COLL = {
   ratings:  collection(db, "kRatings"),
   watchlist:collection(db, "kWatchlist"),
   details:  collection(db, "kDetails"),
-  pools:    collection(db, "kPools"),     // własne pule do losowania
 };
 
 let MOVIES   = {};
-let POOLS    = {}; // poolId -> { name, items: [{id,title,poster,genre,year}] }  // id → film
 let RATINGS  = {};  // id → { kar:{cats,where,noteShort,noteLong}, adam:{...} }
 let WATCHLIST = {}; // id → film  (pochodna: nieobejrzane filmy ze wszystkich list — patrz lists.js)
-let SERIES_API = null, LISTS_API = null, ADS_API = null, WATCH_API = null, INSIGHTS_API = null, GAME_API = null;
+let SERIES_API = null, LISTS_API = null, WATCH_API = null, INSIGHTS_API = null, GAME_API = null;
+function localToday() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+let _renderT = null;
+function scheduleRender() { clearTimeout(_renderT); _renderT = setTimeout(renderCurrentView, 60); }
 function syncWatchlist() { WATCHLIST = LISTS_API ? LISTS_API.unwatchedMap() : {}; }
-let DB_FILMS  = { months:{}, showtimes:{}, updated:null }; // data/films.json
 
 let fbError = false;
 function showFbError(e) {
@@ -44,9 +44,8 @@ function showFbError(e) {
     "⚠️ Błąd Firebase: " + e.message + " — sprawdź config.js i reguły Firestore.";
 }
 
-onSnapshot(COLL.movies,   s => { MOVIES   = {}; s.forEach(d => MOVIES[d.id]   = d.data()); renderCurrentView(); }, showFbError);
-onSnapshot(COLL.ratings,  s => { RATINGS  = {}; s.forEach(d => RATINGS[d.id]  = d.data()); renderCurrentView(); }, showFbError);
-onSnapshot(COLL.pools, s => { POOLS={}; s.forEach(d=>POOLS[d.id]={id:d.id,...d.data()}); if(currentView()==="losuj") renderLosuj(); }, e=>console.warn("pools:",e));
+onSnapshot(COLL.movies,   s => { MOVIES   = {}; s.forEach(d => MOVIES[d.id]   = d.data()); scheduleRender(); }, showFbError);
+onSnapshot(COLL.ratings,  s => { RATINGS  = {}; s.forEach(d => RATINGS[d.id]  = d.data()); scheduleRender(); }, showFbError);
 let DETAILS = {};
 onSnapshot(COLL.details, s => { s.forEach(d => DETAILS[d.id] = d.data()); if(currentView()==="rezyserzy") renderRezyserzy(); }, e=>console.warn("details:",e));
 
@@ -322,7 +321,7 @@ function renderHome() {
         <div class="hsi-ov"><div class="hsi-title">${esc(s.title)} ${s.year?"("+esc(s.year)+")":""}</div></div>
       </div>`).join("");
     // films grid — trending 2-8
-    document.getElementById("home-now-sub").textContent = "Popularne teraz · TMDB";
+    document.getElementById("home-now-sub").textContent = "TMDB";
     document.getElementById("home-now").innerHTML = trending.slice(0, 8).map(f => {
       const rated = !!MOVIES[f.id] && !!RATINGS[f.id];
       return `<div class="mcard" onclick="${rated ? `openDetail('${esc(f.id)}')` : `addToWatchlist('${esc(f.id)}',${JSON.stringify(f).replace(/"/g,'&quot;')})`}">
@@ -349,48 +348,6 @@ function renderHome() {
   document.getElementById("home-rank").innerHTML = rated.length
     ? rated.map((f, i) => rankRow(f, i, "joint")).join("")
     : "<div class='empty'>Ocenione filmy pojawią się tutaj.</div>";
-}
-
-// ── SEANSE ──
-function renderSeanse() {
-  const allFilms = Object.values(currentMonthFilms());
-  const cinema = document.getElementById("seanse-cinema")?.value || "";
-  const dateF  = document.getElementById("seanse-date")?.value  || "";
-
-  const filtered = allFilms.filter(f => {
-    if (cinema && !(f.cinemas || []).some(c => c.includes(cinema))) return false;
-    return true;
-  });
-
-  document.getElementById("seanse-count").textContent = filtered.length + " filmów";
-  if (!filtered.length) {
-    document.getElementById("seanse-list").innerHTML = "<div class='empty'>Brak filmów w repertuarze. Uruchom GitHub Action, żeby pobrać aktualne seanse.</div>";
-    return;
-  }
-  document.getElementById("seanse-list").innerHTML = filtered.map(f => {
-    const shows = (DB_FILMS.showtimes?.[f.id] || []).slice().sort((a,b)=>String(a.dt).localeCompare(String(b.dt))).filter(e => new Date(e.dt) > new Date()).slice(0, 5);
-    const isWatched = !!RATINGS[f.id];
-    const isOnList  = !!WATCHLIST[f.id];
-    return `<div class="showtime-row">
-      <div class="st-poster">
-        ${f.poster ? `<img src="${esc(f.poster)}" alt="" loading="lazy">` : "🎬"}
-      </div>
-      <div class="st-info">
-        <div class="st-title">${esc(f.title)}</div>
-        <div class="st-meta">${[f.genre, f.length ? f.length+" min" : ""].filter(Boolean).join(" · ")} · ${(f.cinemas||[]).map(c=>c.replace("Poznań ","")).join(", ")}</div>
-        ${shows.length ? `<div class="st-times">${shows.map(e => `
-          <div class="st-time ${(e.attrs||[]).includes("imax")?"imax":""}">${fmtDt(e.dt)}</div>`).join("")}
-        </div>` : ""}
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        ${isWatched
-          ? `<button class="st-add" style="background:var(--ok)" onclick="openDetail('${esc(f.id)}')">✓ Oceniony</button>`
-          : isOnList
-          ? `<button class="st-add" style="background:#555;color:#ccc" onclick="setView('lista')">Na liście</button>`
-          : `<button class="st-add" onclick="addToWatchlist('${esc(f.id)}',${JSON.stringify(f)})">+ Do listy</button>`}
-      </div>
-    </div>`;
-  }).join("");
 }
 
 // ── OCENY ──
@@ -889,225 +846,6 @@ function renderProfile(who) {
 }
 
 
-// ── LOSUJ ──
-let lastDrawn = null;
-let _drawCache = { genre:"", data:[], ts:0 };
-
-const GENRE_TO_TMDB_ID = {
-  "Akcja":28,"Animacja":16,"Dokumentalny":99,"Dramat":18,"Fantasy":14,
-  "Horror":27,"Komedia":35,"Romans":10749,"Sci-Fi":878,"Thriller":53,
-};
-
-async function fetchTmdbDrawPool(genre) {
-  const now = Date.now();
-  if (_drawCache.genre === genre && _drawCache.data.length && now - _drawCache.ts < 8*60*1000) {
-    return _drawCache.data;
-  }
-  if (!TMDB_KEY || TMDB_KEY.startsWith("WSTAW")) return [];
-  const gParam = genre && GENRE_TO_TMDB_ID[genre] ? `&with_genres=${GENRE_TO_TMDB_ID[genre]}` : "";
-  let all = [];
-  try {
-    const reqs = [
-      fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_KEY}&language=pl-PL&page=1${gParam}`),
-      fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_KEY}&language=pl-PL&page=2${gParam}`),
-      fetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${TMDB_KEY}&language=pl-PL&page=1${gParam}`),
-      fetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${TMDB_KEY}&language=pl-PL&page=2${gParam}`),
-    ];
-    const resps = await Promise.all(reqs);
-    for (const r of resps) {
-      if (!r.ok) continue;
-      const d = await r.json();
-      all.push(...(d.results||[]));
-    }
-  } catch(e) { console.warn("TMDB draw fetch error:", e); }
-  const seen = new Set();
-  const result = all
-    .filter(f => { if(seen.has(f.id)) return false; seen.add(f.id); return true; })
-    .map(f => ({
-      id: "t"+f.id, tmdbId: f.id,
-      title: f.title,
-      poster: f.poster_path ? TMDB_IMG + f.poster_path : null,
-      year:   (f.release_date||"").slice(0,4)||null,
-      genre:  tmdbGenre(f.genre_ids||[]),
-    }));
-  _drawCache = { genre, data: result, ts: Date.now() };
-  return result;
-}
-
-async function doLosuj() {
-  const genre  = document.getElementById("losuj-genre")?.value  || "";
-  const source = document.getElementById("losuj-source")?.value || "tmdb";
-  const btn    = document.getElementById("draw-btn");
-  const res    = document.getElementById("draw-res");
-  if (!btn || !res) return;
-
-  let pool = [];
-  if (source === "lista") {
-    pool = Object.values(WATCHLIST);
-    if (genre) pool = pool.filter(f => f.genre === genre);
-  } else if (source === "rated") {
-    pool = Object.values(MOVIES).filter(f => RATINGS[f.id]);
-    if (genre) pool = pool.filter(f => f.genre === genre);
-  } else if (source.startsWith("pool:")) {
-    const poolId = source.slice(5);
-    pool = POOLS[poolId]?.items || [];
-    if (genre) pool = pool.filter(f => f.genre === genre);
-  } else {
-    // "tmdb" — cała baza popularnych filmów z TMDB
-    btn.disabled = true;
-    btn.textContent = "Ładuję…";
-    pool = await fetchTmdbDrawPool(genre);
-    btn.textContent = "🎲 LOSUJ!";
-  }
-
-  if (!pool.length) {
-    btn.disabled = false;
-    alert("Brak filmów w wybranej puli. Zmień gatunek lub źródło."); return;
-  }
-
-  btn.disabled = true; res.style.display = "none";
-  let i = 0, max = 18, picked = null;
-  function tick() {
-    picked = pool[Math.floor(Math.random()*pool.length)];
-    const te = document.getElementById("dr-title");
-    const me = document.getElementById("dr-meta");
-    const de = document.getElementById("dr-poster");
-    if (!te||!me||!de) { btn.disabled=false; return; }
-    te.textContent = picked.title;
-    me.textContent = [picked.genre, picked.length?picked.length+" min":"", picked.year].filter(Boolean).join(" · ");
-    de.innerHTML   = picked.poster
-      ? `<img src="${esc(picked.poster)}" alt="" style="width:100%;height:100%;object-fit:cover">` : "🎬";
-    i++;
-    if (i < max) setTimeout(tick, 40 + i*8);
-    else {
-      lastDrawn = picked; res.style.display = "block"; btn.disabled = false;
-      const rb = document.getElementById("dr-rate-btn");
-      const ab = document.getElementById("dr-add-btn");
-      if (rb) rb.onclick = () => { if(lastDrawn) addToMovies(lastDrawn).then(()=>openRating(lastDrawn.id)); };
-      if (ab) ab.onclick = () => { if(lastDrawn) addToWatchlist(lastDrawn.id, lastDrawn); };
-    }
-  }
-  tick();
-}
-window.doLosuj = doLosuj;
-
-/* ─── Pool CRUD ─── */
-async function createPool(name) {
-  if (!name?.trim()) return;
-  const id = "p" + Date.now();
-  await setDoc(doc(COLL.pools, id), { name: name.trim(), items: [] });
-  return id;
-}
-async function poolAddFilm(poolId, film) {
-  const pool = POOLS[poolId]; if (!pool) return;
-  if (pool.items.some(x=>x.id===film.id)) { alert("Ten film jest już w tej puli."); return; }
-  const item = { id:film.id, title:film.title, poster:film.poster||null, genre:film.genre||null, year:film.year||null };
-  await updateDoc(doc(COLL.pools, poolId), { items:[...pool.items, item] });
-}
-async function poolRemoveFilm(poolId, filmId) {
-  const pool = POOLS[poolId]; if (!pool) return;
-  await updateDoc(doc(COLL.pools, poolId), { items: pool.items.filter(x=>x.id!==filmId) });
-}
-async function deletePool(poolId) {
-  if (!confirm(`Usunąć pulę "${POOLS[poolId]?.name}"?`)) return;
-  await deleteDoc(doc(COLL.pools, poolId));
-}
-window.createPool=createPool; window.poolRemoveFilm=poolRemoveFilm; window.deletePool=deletePool;
-
-/* ─── Pool manager dialog ─── */
-let _managerPoolId = null;
-function openPoolManager(poolId) {
-  _managerPoolId = poolId || null;
-  renderPoolManager();
-  document.getElementById("poolDialog").showModal();
-}
-window.openPoolManager = openPoolManager;
-
-function renderPoolManager() {
-  const dlg = document.getElementById("poolManagerContent");
-  if (!dlg) return;
-  const pools = Object.values(POOLS);
-  if (!_managerPoolId && pools.length) _managerPoolId = pools[0].id;
-  const cur = _managerPoolId ? POOLS[_managerPoolId] : null;
-  dlg.innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-      <select id="pm-pool-sel" onchange="_managerPoolId=this.value;renderPoolManager()"
-        style="background:var(--card2);border:1px solid var(--brd);color:var(--ink);padding:7px 10px;border-radius:7px;font-size:13px;flex:1">
-        ${pools.map(p=>`<option value="${esc(p.id)}" ${p.id===_managerPoolId?"selected":""}>${esc(p.name)} (${p.items?.length||0})</option>`).join("")}
-        ${!pools.length?'<option disabled>Brak pul</option>':""}
-      </select>
-      <button class="btn" onclick="promptCreatePool()">+ Nowa pula</button>
-      ${cur?`<button class="btn btn-danger" onclick="deletePool('${esc(_managerPoolId)}')">Usuń pulę</button>`:""}
-    </div>
-    ${cur ? `
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Filmy w puli: ${cur.items?.length||0}</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:240px;overflow-y:auto;margin-bottom:12px">
-      ${(cur.items||[]).map(f=>`<div style="background:var(--card2);border-radius:8px;overflow:hidden;position:relative">
-        <div style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--dim);background:var(--card2)">
-          ${f.poster?`<img src="${esc(f.poster)}" alt="" style="width:100%;height:100%;object-fit:cover">`:"🎬"}
-        </div>
-        <div style="padding:5px 6px;font-size:10px;font-weight:700;color:var(--ink);line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(f.title)}</div>
-        <button onclick="poolRemoveFilm('${esc(_managerPoolId)}','${esc(f.id)}')"
-          style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.75);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer">✕</button>
-      </div>`).join("")}
-    </div>
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Dodaj film do puli</div>
-    <input type="text" id="pm-search" class="search-input" placeholder="Wpisz tytuł…" autocomplete="off" oninput="pmSearch(this.value)" style="margin-bottom:6px">
-    <div id="pm-results" class="search-results" style="max-height:180px"></div>
-    ` : '<div class="empty">Utwórz pierwszą pulę przyciskiem powyżej.</div>'}
-  `;
-}
-
-let _pmTimer = null;
-function pmSearch(q) {
-  clearTimeout(_pmTimer);
-  const box = document.getElementById("pm-results"); if(!box) return;
-  if (q.length < 2) { box.innerHTML=""; return; }
-  box.innerHTML = '<div class="sr-hint">Szukam…</div>';
-  _pmTimer = setTimeout(async () => {
-    const results = await tmdbSearch(q, "movie");
-    box.innerHTML = results.length ? results.slice(0,6).map(res => {
-      const title = res.title; const year = (res.release_date||"").slice(0,4);
-      const poster = res.poster_path ? TMDB_IMG_SM + res.poster_path : null;
-      const film = { id:"t"+res.id, tmdbId:res.id, title, poster: res.poster_path?TMDB_IMG+res.poster_path:null, year, genre:tmdbGenre(res.genre_ids||[]) };
-      const filmJSON = JSON.stringify(film).replace(/"/g,"&quot;");
-      return `<button type="button" class="sr-item" onclick="poolAddFilm('${esc(_managerPoolId)}',JSON.parse(this.dataset.f));document.getElementById('pm-search').value='';document.getElementById('pm-results').innerHTML='';renderPoolManager()" data-f="${filmJSON}">
-        ${poster?`<img src="${poster}" alt="">` : '<div class="sr-ph">🎬</div>'}
-        <span>${esc(title)}${year?` <small>(${year})</small>`:""}</span>
-      </button>`;
-    }).join("") : '<div class="sr-hint">Brak wyników.</div>';
-  }, 350);
-}
-window.pmSearch = pmSearch;
-
-async function promptCreatePool() {
-  const name = prompt("Nazwa nowej puli (np. Horrory na Halloween, Top Adama):");
-  if (!name?.trim()) return;
-  const id = await createPool(name);
-  _managerPoolId = id;
-  renderPoolManager();
-}
-window.promptCreatePool = promptCreatePool;
-
-function renderLosuj() {
-  const pools = Object.values(POOLS);
-  const poolOpts = pools.map(p => `<option value="pool:${esc(p.id)}">${esc(p.name)} (${p.items?.length||0})</option>`).join("");
-  const sel = document.getElementById("losuj-source");
-  const curVal = sel?.value || "tmdb";
-  if (sel) {
-    sel.innerHTML = `
-      <option value="tmdb">🎬 Cała baza TMDB (popularne)</option>
-      <option value="lista">📋 Lista do obejrzenia</option>
-      <option value="rated">⭐ Tylko ocenione</option>
-      ${poolOpts ? `<optgroup label="Własne pule">${poolOpts}</optgroup>` : ""}
-    `;
-    // restore selection
-    if ([...sel.options].some(o=>o.value===curVal)) sel.value = curVal;
-  }
-  const btn = document.getElementById("manage-pools-btn");
-  if (btn) btn.textContent = `Zarządzaj pulami (${pools.length})`;
-}
-
 // ── ZASADY ──
 function renderZasady() {
   const ZL = document.getElementById("zasady-levels");
@@ -1156,7 +894,7 @@ function renderZasady() {
 ═══════════════════════════════════════════════ */
 let rfState = {
   movieId: null, genre: null, person: "kar", where: "kino",
-  watchDate: new Date().toISOString().slice(0,10),
+  watchDate: localToday(),
   scores:       { kar: Array(10).fill(3), adam: Array(10).fill(3) },
   personWatched:{ kar: true, adam: true },   // false = nie widziała/ał jeszcze
   castList:     [],
@@ -1167,18 +905,20 @@ async function openRating(movieId) {
   if (!film) return;
   const r     = RATINGS[movieId];
   const genre = film.genre || "";
+  const rw    = !!(film.rewatch && film.rewatch.on && r);   // ocena po ponownym seansie zaczyna się od zera
   rfState = {
+    rewatch: rw,
     movieId, genre,
     person:        "kar",
     where:         r?.kar?.where || r?.adam?.where || "kino",
-    watchDate:     r?.kar?.watchDate || r?.adam?.watchDate || new Date().toISOString().slice(0,10),
+    watchDate:     rw ? localToday() : (r?.kar?.watchDate || r?.adam?.watchDate || localToday()),
     scores: {
-      kar:  r?.kar?.cats  ? [...r.kar.cats]  : Array(10).fill(3),
-      adam: r?.adam?.cats ? [...r.adam.cats] : Array(10).fill(3),
+      kar:  !rw && r?.kar?.cats  ? [...r.kar.cats]  : Array(10).fill(3),
+      adam: !rw && r?.adam?.cats ? [...r.adam.cats] : Array(10).fill(3),
     },
     personWatched: {
-      kar:  r?.kar?.watched  !== false,
-      adam: r?.adam?.watched !== false,
+      kar:  rw ? true : r?.kar?.watched  !== false,
+      adam: rw ? true : r?.adam?.watched !== false,
     },
     castList: rfState._lastMovieId === movieId && rfState.castList?.length ? rfState.castList : [],
   };
@@ -1247,6 +987,7 @@ function renderRFBody(film, cats) {
   const r    = RATINGS[movieId];
 
   document.getElementById("ratingForm").innerHTML = `
+    ${rfState.rewatch ? `<div class="rw-banner">🔁 Rewatch — poprzednia ocena trafi do historii filmu, a to będzie nowa ocena z dzisiejszą datą.</div>` : ""}
     <div class="rf-hd">
       <div class="rf-poster">
         ${film.poster ? `<img src="${esc(film.poster)}" alt="">` : "🎬"}
@@ -1271,7 +1012,7 @@ function renderRFBody(film, cats) {
         <div class="rf-section-label" style="margin-bottom:6px">Data obejrzenia:</div>
         <input type="date" id="rf-watch-date" value="${watchDate}"
           style="background:var(--card2);border:1px solid var(--brd);border-radius:7px;color:var(--ink);padding:7px 10px;font-size:13px;font-family:'IBM Plex Mono',monospace"
-          onchange="rfState.watchDate=this.value">
+          onchange="rfSetDate(this.value)">
       </div>
     </div>
 
@@ -1385,7 +1126,7 @@ function rfRerender() {
 window.rfSetStar    = (i, n) => { rfState.scores[rfState.person][i] = n; rfRerender(); };
 window.rfSetPerson  = (p)    => { rfState.person = p; rfRerender(); };
 window.rfSetWhere   = (w)    => { rfState.where  = w; rfRerender(); };
-window.rfSetWatched = window.rfSetWatched || ((p,v) => { rfState.personWatched[p]=v; rfRerender(); });
+window.rfSetDate = v => { if (/^\d{4}-\d{2}-\d{2}$/.test(v)) rfState.watchDate = v; };
 window.rfSetWatched = (p, v) => { rfState.personWatched[p] = v; rfRerender(); };
 
 async function saveRating() {
@@ -1395,8 +1136,16 @@ async function saveRating() {
   const noteKarShort  = document.getElementById("note-kar-short")?.value.trim()  || null;
   const noteAdamShort = document.getElementById("note-adam-short")?.value.trim() || null;
   const saga          = document.getElementById("rf-saga")?.value.trim() || null;
-  const wd            = rfState.watchDate || new Date().toISOString().slice(0,10);
+  const dEl           = document.getElementById("rf-watch-date");
+  const wd            = (dEl && /^\d{4}-\d{2}-\d{2}$/.test(dEl.value) ? dEl.value : rfState.watchDate) || localToday();
 
+  if (film.rewatch && film.rewatch.on && RATINGS[movieId]) {
+    const old = RATINGS[movieId];
+    const entry = { date: old.kar?.watchDate || old.adam?.watchDate || null, kar: personScore(old.kar), adam: personScore(old.adam), where: old.kar?.where || old.adam?.where || null };
+    const patch = { history: [...(film.history || []), entry], rewatch: { on: false } };
+    MOVIES[movieId] = { ...film, ...patch };
+    await updateDoc(doc(COLL.movies, movieId), patch).catch(() => setDoc(doc(COLL.movies, movieId), patch, { merge: true }));
+  }
   await setDoc(doc(COLL.ratings, movieId), {
     kar:  { cats: scores.kar,  where, watchDate: wd, watched: personWatched.kar,  noteShort: noteKarShort  },
     adam: { cats: scores.adam, where, watchDate: wd, watched: personWatched.adam, noteShort: noteAdamShort },
@@ -1425,7 +1174,7 @@ async function openDetail(id) {
 
   let castHtml = "<div class='cast-list' style='color:var(--muted);font-style:italic'>Ładowanie obsady…</div>";
   document.getElementById("detailContent").innerHTML = buildDetailHTML(film, r, p, lv, kP, aP, cats, castHtml);
-  document.getElementById("detailDialog").showModal();
+  { const dd = document.getElementById("detailDialog"); if (!dd.open) dd.showModal(); }
 
   // pobierz obsadę asynchronicznie
   const castData = await getCast(id, film.tmdbId);
@@ -1488,7 +1237,12 @@ function buildDetailHTML(film, r, p, lv, kP, aP, cats, castHtml) {
   <div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-top:10px">
     <div class="cast-list" id="detail-cast">${castHtml}</div>
   </div>
-  <div class="dialog-actions" style="margin-top:12px">
+  ${(film.history || []).length ? `<div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-top:10px">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🔁 Wcześniejsze seanse</div>
+    ${film.history.map(h => `<div style="font-size:12px;margin-bottom:3px">📅 ${esc(h.date || "—")} ${h.where ? (h.where === "kino" ? "🎟️" : "🏠") : ""} ${h.kar != null ? `· 💛 <b style="color:${getLv(h.kar).color}">${h.kar}%</b>` : ""} ${h.adam != null ? `· 💙 <b style="color:${getLv(h.adam).color}">${h.adam}%</b>` : ""}</div>`).join("")}
+  </div>` : ""}
+  <div class="dialog-actions" style="margin-top:12px;flex-wrap:wrap">
+    ${r ? `<button class="btn" onclick="toggleRewatch('${esc(film.id)}')">${film.rewatch?.on ? "✓ W Rewatch · usuń" : "🔁 Rewatch"}</button>` : ""}
     <button class="btn btn-danger" onclick="deleteMovie('${esc(film.id)}');document.getElementById('detailDialog').close()">Usuń film</button>
     <button class="btn" onclick="openRating('${esc(film.id)}');document.getElementById('detailDialog').close()">${r ? "Edytuj ocenę" : "Oceń"}</button>
   </div>`;
@@ -1498,8 +1252,18 @@ function buildDetailHTML(film, r, p, lv, kP, aP, cats, castHtml) {
    FIREBASE CRUD
 ═══════════════════════════════════════════════ */
 async function addToMovies(film) {
-  await setDoc(doc(COLL.movies, film.id), film);
+  await setDoc(doc(COLL.movies, film.id), film, { merge: true });   // merge: nie kasuje rewatch/historii/sagi
 }
+// 🔁 Rewatch: flaga na filmie (kMovies) — film wraca do obejrzenia i można go ocenić ponownie
+async function setRewatch(id, on) {
+  const val = on ? { on: true, since: localToday() } : { on: false };
+  if (MOVIES[id]) MOVIES[id] = { ...MOVIES[id], rewatch: val };
+  await updateDoc(doc(COLL.movies, id), { rewatch: val }).catch(() => setDoc(doc(COLL.movies, id), { rewatch: val }, { merge: true }));
+  toast(on ? "Dodano do Rewatch 🔁" : "Usunięto z Rewatch");
+  scheduleRender();
+}
+window.setRewatch = setRewatch;
+window.toggleRewatch = async id => { await setRewatch(id, !(MOVIES[id] && MOVIES[id].rewatch && MOVIES[id].rewatch.on)); openDetail(id); };
 async function addToWatchlist(id, film) {
   const f = film || MOVIES[id];
   if (!f || !LISTS_API) return;
@@ -1622,35 +1386,12 @@ async function selectTmdb(tmdbId) {
   }
 }
 window.selectTmdb = selectTmdb;
-window.doLosuj    = doLosuj;
 window.openRating = openRating;
-
-/* ═══════════════════════════════════════════════
-   REPERTUAR Z data/films.json
-═══════════════════════════════════════════════ */
-function currentMonthFilms() {
-  const now = new Date();
-  const key = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
-  return DB_FILMS.months[key]?.films || {};
-}
-async function loadDbFilms() {
-  try {
-    const r = await fetch("data/films.json?v=" + Date.now());
-    DB_FILMS = await r.json();
-    if (DB_FILMS.updated) document.getElementById("seanse-count").textContent = "Dane z: " + DB_FILMS.updated;
-    // Dodaj filmy z kina do MOVIES jeśli ich tam nie ma (tylko metadane, bez ocen)
-    for (const f of Object.values(currentMonthFilms())) {
-      if (!MOVIES[f.id]) await setDoc(doc(COLL.movies, f.id), { ...f, fromCinema: true }).catch(() => {});
-    }
-  } catch(e) {
-    console.warn("data/films.json niedostępny:", e);
-  }
-}
 
 /* ═══════════════════════════════════════════════
    ROUTING
 ═══════════════════════════════════════════════ */
-const VIEWS = ["home","seanse","oceny","seriale","lista","dzis","podsumowania","gra","top","sagi","rezyserzy","profil-kar","profil-adam","losuj","zasady"];
+const VIEWS = ["home","oceny","seriale","lista","podsumowania","gra","top","sagi","rezyserzy","profil-kar","profil-adam","zasady"];
 function currentView() {
   const h = location.hash.replace("#", "");
   return VIEWS.includes(h) ? h : "home";
@@ -1667,17 +1408,15 @@ function applyView() {
     if (el) el.classList.toggle("active", id === v);
   }
   document.querySelectorAll(".ntab").forEach(t =>
-    t.classList.toggle("active", t.dataset.view === v));
+    t.classList.toggle("active", t.dataset.view === (v === "rezyserzy" ? "sagi" : v)));
   renderCurrentView();
 }
 function renderCurrentView() {
   syncWatchlist();
   const v = currentView();
   if (v === "home")    { renderHome(); INSIGHTS_API && INSIGHTS_API.renderHome(); }
-  else if (v === "dzis")          WATCH_API && WATCH_API.renderTonight();
   else if (v === "podsumowania")  INSIGHTS_API && INSIGHTS_API.render();
   else if (v === "gra")           GAME_API && GAME_API.render();
-  else if (v === "seanse")  renderSeanse();
   else if (v === "oceny")   renderOceny();
   else if (v === "lista")   renderLista();
   else if (v === "seriale") SERIES_API && SERIES_API.renderSeries();
@@ -1686,7 +1425,6 @@ function renderCurrentView() {
   else if (v === "rezyserzy")    renderRezyserzy();
   else if (v === "profil-kar")   renderProfile("kar");
   else if (v === "profil-adam")  renderProfile("adam");
-  else if (v === "losuj")   {} // losuj doesn't auto-render
   else if (v === "zasady")  renderZasady();
 }
 
@@ -1707,10 +1445,6 @@ document.querySelector("#v-top .top-tab-bar").addEventListener("click", e => {
   renderTop(btn.dataset.top);
 });
 
-// Seanse filters
-["seanse-date","seanse-cinema"].forEach(id => {
-  document.getElementById(id)?.addEventListener("change", renderSeanse);
-});
 // Oceny filters
 ["oceny-filter-level","oceny-filter-where"].forEach(id => {
   document.getElementById(id)?.addEventListener("change", renderOceny);
@@ -1721,21 +1455,19 @@ document.querySelector("#v-top .top-tab-bar").addEventListener("click", e => {
 ═══════════════════════════════════════════════ */
 const FS = { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs, getDoc };
 const baseCtx = {
-  fs: FS, db, esc, getLv, pcSVG, TMDB_KEY, toast, jointPct, personScore, fetchFilm, rateMovie,
+  fs: FS, db, esc, getLv, pcSVG, TMDB_KEY, toast, jointPct, personScore, fetchFilm, rateMovie, setRewatch,
   getRatings: () => RATINGS, getMovies: () => MOVIES, getGenreCats,
 };
 LISTS_API = initLists({ ...baseCtx,
-  onChange: () => { syncWatchlist(); if (currentView() !== "lista") renderCurrentView(); },
+  onChange: () => { syncWatchlist(); scheduleRender(); },
   afterRender: b => WATCH_API && WATCH_API.hydrate(b) });
 SERIES_API = initSeries({ ...baseCtx, onChange: () => { const v = currentView(); if (v === "profil-kar" || v === "profil-adam") renderCurrentView(); } });
-WATCH_API = initWatch({ ...baseCtx, getLists: () => LISTS_API.getLists(), getSeries: () => SERIES_API.getSeries(), getSR: () => SERIES_API.getSR(),
-  onChange: () => renderCurrentView() });
+WATCH_API = initWatch({ ...baseCtx, getLists: () => LISTS_API.getLists(), getSeries: () => SERIES_API.getSeries(), getSR: () => SERIES_API.getSR(), getActiveList: () => LISTS_API.getActive(),
+  onChange: () => scheduleRender() });
 INSIGHTS_API = initInsights(baseCtx);
-GAME_API = initGame({ ...baseCtx, onChange: () => { const v = currentView(); if (v === "profil-kar" || v === "profil-adam") renderCurrentView(); } });
-ADS_API = initAds({ ...baseCtx, addToList: f => LISTS_API.addToDefault(f) });
+initQuick({ ...baseCtx, getSeries: () => SERIES_API.getSeries(), addToList: f => LISTS_API.addToDefault(f) });
+GAME_API = initGame({ ...baseCtx, getSeries: () => SERIES_API.getSeries(), getSeriesScores: () => SERIES_API.scores(), onChange: () => { const v = currentView(); if (v === "profil-kar" || v === "profil-adam") renderCurrentView(); } });
 
 (async function init() {
-  await loadDbFilms();
   applyView();
-  ADS_API.start().catch(e => console.warn("ads:", e));
 })();
