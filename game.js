@@ -1,5 +1,7 @@
 // game.js — KINODLE: codziennie jeden film z naszych ocenionych; zgadujemy go po wskazówkach (jak „Who Are Ya?”)
 export const MAX_TRIES = 10;
+export const blurPct = n => Math.max(10, 100 - (n - 1) * 10);          // próba 1 = 100% rozmycia … próba 10 = 10%
+export const BLUR_MAX_PX = 38;
 export const pointsFor = n => (n >= 1 && n <= MAX_TRIES ? Math.max(10, 100 - (n - 1) * 10) : 0);
 
 // pojedyncza komórka wskazówki: kierunek względem szukanego filmu
@@ -63,6 +65,7 @@ export function initGame(ctx) {
   /* ───── akcje ───── */
   async function choose(w) {
     if (ui.mode === "wms") return chooseWms(w);
+    if (ui.mode === "cover") return chooseCover(w);
     const pl = play(today(), w);
     if (pl && pl.done) return;
     const fid = await ensureDaily();
@@ -110,39 +113,58 @@ export function initGame(ctx) {
     </div>`;
   }
   function totals() {
-    const t = { kar: { pts: 0, wmsPts: 0, games: 0, wins: 0, tries: 0 }, adam: { pts: 0, wmsPts: 0, games: 0, wins: 0, tries: 0 } };
+    const t = { kar: { pts: 0, wmsPts: 0, cvrPts: 0, games: 0, wins: 0, tries: 0 }, adam: { pts: 0, wmsPts: 0, cvrPts: 0, games: 0, wins: 0, tries: 0 } };
     for (const [id, d] of Object.entries(DOCS)) {
       if (id.startsWith("wms_") && d.who && t[d.who] && d.done) { t[d.who].wmsPts += d.points || 0; continue; }
+      if (id.startsWith("cvr_") && d.who && t[d.who] && d.done) { t[d.who].cvrPts += d.points || 0; continue; }
       if (!id.startsWith("play_") || !d.done || !t[d.who]) continue;
       const x = t[d.who]; x.pts += d.points || 0; x.games++; if (d.solved) { x.wins++; x.tries += d.guesses.length; }
     }
     return t;
   }
 
+  function playOf(d, w) { return ui.mode === "kino" ? play(d, w) : ui.mode === "wms" ? wmsPlay(d, w) : cvrPlay(d, w); }
   function renderWho() {
     const d = today();
     el("game-who").innerHTML = ["kar", "adam"].map(w => {
-      const pl = ui.mode === "kino" ? play(d, w) : wmsPlay(d, w), done = pl && pl.done;
+      const pl = playOf(d, w), done = pl && pl.done;
       const sub = done ? `${WHO[w].past} dziś: ${pl.points} pkt`
         : ui.mode === "kino" ? (pl && pl.guesses && pl.guesses.length ? `w trakcie · próba ${pl.guesses.length + 1}/${MAX_TRIES}` : "gotowa do gry")
-        : (pl && pl.answers && pl.answers.length ? `w trakcie · seria ${pl.points}` : "gotowa do gry");
+        : ui.mode === "wms" ? (pl && pl.answers && pl.answers.length ? `w trakcie · seria ${pl.points}` : "gotowa do gry")
+        : (pl && pl.guesses && pl.guesses.length ? `w trakcie · próba ${pl.guesses.length + 1}/${MAX_TRIES}` : "gotowa do gry");
       return `<button class="gm-who ${ui.who === w ? "active" : ""} ${done ? "done" : ""}" ${done ? "disabled" : ""} onclick="GAME.choose('${w}')">
         <span class="gm-who-h">${WHO[w].heart}</span><b>${WHO[w].name}</b><small>${sub}</small></button>`;
     }).join("");
     const tot = totals();
     el("game-score").innerHTML = ["kar", "adam"].map(w => {
       const x = tot[w];
-      return `<div class="gm-sc"><div class="gm-sc-n">${WHO[w].heart} ${WHO[w].name}</div><div class="gm-sc-pts">${x.pts + x.wmsPts}</div>
-        <small>Kinodle ${x.pts} · Ile dał? ${x.wmsPts}<br>${x.games} gier Kinodle · ${x.wins} trafionych${x.wins ? ` · śr. ${Math.round(x.tries / x.wins * 10) / 10} prób` : ""}</small></div>`;
+      return `<div class="gm-sc"><div class="gm-sc-n">${WHO[w].heart} ${WHO[w].name}</div><div class="gm-sc-pts">${x.pts + x.wmsPts + x.cvrPts}</div>
+        <small>Kinodle ${x.pts} · Ile dał? ${x.wmsPts} · Okładka ${x.cvrPts}</small></div>`;
     }).join("");
+    if (el("game-diff")) el("game-diff").innerHTML = duelHTML(true);
   }
+
+  // pasek „przeciągania liny” + różnice w każdej grze
+  function duelHTML(detail) {
+    const t = totals(), k = t.kar.pts + t.kar.wmsPts + t.kar.cvrPts, a = t.adam.pts + t.adam.wmsPts + t.adam.cvrPts;
+    const sum = k + a, kp = sum ? Math.round(k / sum * 100) : 50, diff = Math.abs(k - a);
+    const lead = k === a ? `<b>Remis!</b> ${k ? "" : "Zagrajcie, żeby ruszyć z miejsca."}` : `${k > a ? "💛 Karolina" : "💙 Adam"} prowadzi o <b>${diff}</b> pkt`;
+    const rows = [["Kinodle", t.kar.pts, t.adam.pts], ["Ile dał?", t.kar.wmsPts, t.adam.wmsPts], ["Okładka", t.kar.cvrPts, t.adam.cvrPts]];
+    return `<div class="duel">
+      <div class="duel-top"><span class="duel-k">💛 ${k}</span><span class="duel-lead">${lead}</span><span class="duel-a">${a} 💙</span></div>
+      <div class="duel-bar"><i style="width:${kp}%"></i><b style="left:${kp}%"></b></div>
+      ${detail ? `<div class="duel-rows">${rows.map(([n, x, y]) => `<div><span class="${x > y ? "lead" : ""}">${x}</span><em>${n}${x !== y ? ` · ${x > y ? "💛" : "💙"} +${Math.abs(x - y)}` : ""}</em><span class="${y > x ? "lead" : ""}">${y}</span></div>`).join("")}</div>` : ""}
+    </div>`;
+  }
+  function renderDuel() { const b = el("home-duel"); if (b) b.innerHTML = duelHTML(true); }
   function render() {
     if (!el("game-root")) return;
     document.querySelectorAll("#game-modes .top-tab").forEach(t => t.classList.toggle("active", t.dataset.gmode === ui.mode));
     el("game-kino").style.display = ui.mode === "kino" ? "" : "none";
     el("game-wms").style.display = ui.mode === "wms" ? "" : "none";
+    el("game-cover").style.display = ui.mode === "cover" ? "" : "none";
     renderWho();
-    if (ui.mode === "kino") renderKino(); else renderWms();
+    if (ui.mode === "kino") renderKino(); else if (ui.mode === "wms") renderWms(); else renderCover();
   }
   function renderKino() {
     const d = today(), p = pool();
@@ -289,15 +311,98 @@ export function initGame(ctx) {
     }
   }
 
-  window.GAME = { choose, guess, answer, setMode, back: backToWho };
+
+  /* ═════════ „Okładka” — odsłanianie rozmytej okładki ═════════ */
+  const cvrDailyId = d => "cvr_daily_" + d, cvrPlayId = (d, w) => `cvr_${d}_${w}`;
+  const cvrPlay = (d, w) => DOCS[cvrPlayId(d, w)] || null;
+  // pula: ocenione filmy i seriale z okładką
+  function coverPool() {
+    const out = [], R = getRatings() || {}, M = getMovies() || {};
+    for (const id of Object.keys(R)) { const f = M[id]; if (f && f.poster) out.push({ key: "f:" + id, id, kind: "f", title: f.title, poster: f.poster, year: f.year }); }
+    const S = getSeries ? getSeries() : {};
+    for (const x of (getSeriesScores ? getSeriesScores() : [])) { const s = S[x.id]; if (s && s.poster && !out.some(o => o.key === "s:" + x.id)) out.push({ key: "s:" + x.id, id: x.id, kind: "s", title: s.title, poster: s.poster, year: s.year }); }
+    return out.sort((a, b) => a.key.localeCompare(b.key));
+  }
+  const cvrItem = key => coverPool().find(x => x.key === key) || null;
+  async function ensureCover() {
+    const d = today(), id = cvrDailyId(d), cur = DOCS[id];
+    if (cur && cvrItem(cur.key)) return cur.key;
+    try { const snap = await getDoc(doc(CG, id)); if (snap.exists() && cvrItem(snap.data().key)) { DOCS[id] = snap.data(); return snap.data().key; } } catch (_e) {}
+    const p = coverPool(); if (p.length < 8) return null;
+    const key = p[hash("cvr" + d) % p.length].key;
+    DOCS[id] = { date: d, key };
+    await setDoc(doc(CG, id), { date: d, key }).catch(() => {});
+    return key;
+  }
+  async function chooseCover(w) {
+    const pl = cvrPlay(today(), w); if (pl && pl.done) return;
+    const key = await ensureCover();
+    if (!key) { toast("Za mało okładek w puli (min. 8)"); return; }
+    ui.who = w; ui.sug = []; render(); el("cover-input")?.focus();
+  }
+  function coverSuggest(q) {
+    const w = ui.who; if (!w) return;
+    const used = new Set((cvrPlay(today(), w) || {}).guesses || []), n = norm(q.trim());
+    ui.sug = n.length < 1 ? [] : coverPool().filter(i => !used.has(i.key) && norm(i.title).includes(n)).slice(0, 8);
+    const box = el("cover-sug");
+    if (box) box.innerHTML = ui.sug.map(i => `<button type="button" class="sr-item" onmousedown="event.preventDefault()" onclick="GAME.coverGuess('${esc(i.key)}')">
+      ${i.poster ? `<img src="${esc(i.poster)}" alt="">` : ""}<span>${esc(i.title)} <small style="color:var(--muted)">(${i.year || "?"}${i.kind === "s" ? " · serial" : ""})</small></span></button>`).join("");
+  }
+  async function coverGuess(key) {
+    const d = today(), w = ui.who; if (!w) return;
+    const target = await ensureCover(); if (!target) return;
+    const cur = cvrPlay(d, w) || { date: d, who: w, guesses: [], solved: false, points: 0, done: false };
+    if (cur.done || cur.guesses.includes(key)) return;
+    const guesses = [...cur.guesses, key], n = guesses.length, solved = key === target, done = solved || n >= MAX_TRIES;
+    const rec = { date: d, who: w, guesses, solved, points: solved ? pointsFor(n) : 0, done, tries: n };
+    DOCS[cvrPlayId(d, w)] = rec;
+    el("cover-input").value = ""; ui.sug = [];
+    render();
+    await setDoc(doc(CG, cvrPlayId(d, w)), rec).catch(e => toast("Nie udało się zapisać: " + e.message));
+  }
+  function renderCover() {
+    const info = el("cover-info"), stage = el("cover-stage"), play_ = el("cover-play");
+    const d = today(), p = coverPool();
+    if (p.length < 8) { info.innerHTML = `<div class="empty">Do „Okładki” potrzebujemy min. 8 ocenionych tytułów z okładką (macie ${p.length}).</div>`; stage.innerHTML = ""; play_.style.display = "none"; return; }
+    if (!ui.who) {
+      info.innerHTML = `<div class="gm-hint"><b>Okładka</b> — codziennie jeden tytuł z naszych ocen (film albo serial), ukryty pod rozmyciem. Zaczynasz od <b>100%</b> rozmycia, a każda zła odpowiedź zmniejsza je o 10%. Punkty jak w Kinodle: <b>100</b> za pierwszą próbę, −10 za każdą kolejną. Raz dziennie na osobę.</div>`;
+      stage.innerHTML = ""; play_.style.display = "none"; return;
+    }
+    const w = ui.who, pl = cvrPlay(d, w) || { guesses: [], done: false }, n = pl.guesses.length;
+    const target = cvrItem((DOCS[cvrDailyId(d)] || {}).key);
+    if (!target) { stage.innerHTML = ""; return; }
+    const level = pl.done ? 0 : blurPct(n + 1), px = Math.round(BLUR_MAX_PX * level / 100 * 10) / 10;
+    if (!pl.done) {
+      info.innerHTML = `<div class="gm-hint"><b>${WHO[w].heart} ${WHO[w].name}</b> · próba <b>${n + 1}/${MAX_TRIES}</b> · rozmycie <b>${level}%</b> · do zdobycia <b class="gm-pts">${pointsFor(n + 1)} pkt</b>
+        <button class="sx-mini" onclick="GAME.back()" style="margin-left:8px">zmień gracza</button></div>`;
+      play_.style.display = "";
+    } else {
+      play_.style.display = "none";
+      info.innerHTML = pl.solved
+        ? `<div class="gm-result win">🎉 To <b>${esc(target.title)}</b> — odgadnięte w próbie ${n}! <span>+${pl.points} pkt</span></div>`
+        : `<div class="gm-result lose">😬 Nie udało się. To było: <b>${esc(target.title)}</b> (${target.year || "?"}) <span>0 pkt</span></div>`;
+    }
+    const steps = Array.from({ length: MAX_TRIES }, (_, i) => `<i class="${i < n ? "past" : i === n && !pl.done ? "now" : ""}"></i>`).join("");
+    stage.innerHTML = `<div class="cv-wrap">
+      <div class="cv-poster ${pl.done ? "clear" : ""}"><img src="${esc(target.poster)}" alt="" style="filter:blur(${px}px) ${pl.done ? "" : "saturate(.85)"};transform:scale(${pl.done ? 1 : 1.12})"></div>
+      <div class="cv-steps" title="Poziomy rozmycia">${steps}</div>
+      ${pl.guesses.length ? `<div class="cv-guesses">${pl.guesses.map(k => { const it = cvrItem(k); return `<span class="${k === target.key ? "ok" : "bad"}">${k === target.key ? "✓" : "✕"} ${esc(it ? it.title : "?")}</span>`; }).join("")}</div>` : ""}
+    </div>`;
+  }
+
+  window.GAME = { choose, guess, answer, setMode, back: backToWho, coverGuess };
   el("game-input")?.addEventListener("input", e => suggest(e.target.value));
+  el("cover-input")?.addEventListener("input", e => coverSuggest(e.target.value));
+  el("cover-input")?.addEventListener("keydown", e => { if (e.key === "Enter" && ui.sug[0]) { e.preventDefault(); coverGuess(ui.sug[0].key); } });
   el("game-input")?.addEventListener("keydown", e => { if (e.key === "Enter" && ui.sug[0]) { e.preventDefault(); guess(ui.sug[0].id); } });
 
   /* ───── profil ───── */
   function profileHTML(w) {
     const rec = Object.entries(DOCS).filter(([id, d]) => id.startsWith("play_") && d.who === w && d.done).map(([, d]) => d).sort((a, b) => a.date.localeCompare(b.date));
+    const cv = Object.entries(DOCS).filter(([id, d]) => id.startsWith("cvr_") && d.who === w && d.done && d.guesses).map(([, d]) => d);
+    const cvPts = cv.reduce((s, r) => s + (r.points || 0), 0), cvWins = cv.filter(r => r.solved).length;
     const wm = Object.entries(DOCS).filter(([id, d]) => id.startsWith("wms_") && d.who === w && d.done && d.answers).map(([, d]) => d);
-    if (!rec.length && !wm.length) return "";
+    if (!rec.length && !wm.length && !cv.length) return "";
     const wmPts = wm.reduce((s, r) => s + (r.points || 0), 0), wmBest = wm.length ? Math.max(...wm.map(r => r.points || 0)) : 0;
     const wins = rec.filter(r => r.solved), pts = rec.reduce((s, r) => s + (r.points || 0), 0);
     const avgT = wins.length ? Math.round(wins.reduce((s, r) => s + r.guesses.length, 0) / wins.length * 10) / 10 : null;
@@ -306,7 +411,8 @@ export function initGame(ctx) {
     const first = wins.filter(r => r.guesses.length === 1).length;
     return `<div class="section"><div class="sec-hd"><h2>🎯 Kinodle</h2><button class="see-all" onclick="setView('gra')">Zagraj →</button></div>
       <div class="profile-quick-stats sx-pqs">
-        <div class="pqs-item"><div class="pqs-val" style="color:var(--gold)">${pts + wmPts}</div><div class="pqs-lbl">Punkty łącznie</div></div>
+        <div class="pqs-item"><div class="pqs-val" style="color:var(--gold)">${pts + wmPts + cvPts}</div><div class="pqs-lbl">Punkty łącznie</div></div>
+        ${cv.length ? `<div class="pqs-item"><div class="pqs-val">${cvWins}/${cv.length}</div><div class="pqs-lbl">Okładki odgadnięte</div></div>` : ""}
         ${wm.length ? `<div class="pqs-item"><div class="pqs-val">${wmBest}</div><div class="pqs-lbl">Najdłuższa seria „Ile dał?”</div></div><div class="pqs-item"><div class="pqs-val">${wm.length}</div><div class="pqs-lbl">Serii „Ile dał?”</div></div>` : ""}
         <div class="pqs-item"><div class="pqs-val">${rec.length}</div><div class="pqs-lbl">Rozegranych gier</div></div>
         <div class="pqs-item"><div class="pqs-val">${wins.length}</div><div class="pqs-lbl">Trafionych</div></div>
@@ -317,5 +423,5 @@ export function initGame(ctx) {
       </div></div>`;
   }
 
-  return { render, profileHTML, totals };
+  return { render, profileHTML, totals, renderDuel };
 }

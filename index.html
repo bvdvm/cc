@@ -6,7 +6,7 @@
 <title>Kineapolis — Cinema City Poznań</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@500;700&display=swap&subset=latin-ext" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@500;700&display=swap&subset=latin-ext" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -79,6 +79,10 @@
       <div class="rank-list" id="home-rank">
         <div class="empty">Ocenione filmy pojawią się tutaj.</div>
       </div>
+    </div>
+    <div class="section" id="home-duel-sec">
+      <div class="sec-hd"><h2>Pojedynek punktowy</h2><button class="see-all" onclick="setView('gra')">Zagraj →</button></div>
+      <div id="home-duel"></div>
     </div>
     <div class="section" id="home-month-sec" style="display:none">
       <div class="sec-hd"><h2>Podsumowanie miesiąca</h2><button class="see-all" onclick="setView('podsumowania')">Oś czasu →</button></div>
@@ -211,17 +215,19 @@
 ════════════════════════════════ -->
 <div class="view" id="v-gra">
   <div class="phead">
-    <div><h1>🎯 Gra</h1><p>Kinodle: zgadnij film dnia (100 pkt, −10 za próbę) · Ile dał?: wyżej czy niżej, seria do pierwszego błędu</p></div>
+    <div><h1>🎯 Gra</h1><p>Kinodle · Ile dał? · Okładka — raz dziennie, punkty do wspólnej puli</p></div>
   </div>
   <div class="top-tab-bar" id="game-modes">
     <button class="top-tab active" data-gmode="kino" onclick="GAME.setMode('kino')">🎯 Kinodle</button>
     <button class="top-tab" data-gmode="wms" onclick="GAME.setMode('wms')">🎲 Ile dał?</button>
+    <button class="top-tab" data-gmode="cover" onclick="GAME.setMode('cover')">🖼️ Okładka</button>
   </div>
   <div class="content" style="padding-top:18px" id="game-root">
     <div class="gm-top">
       <div class="gm-whos" id="game-who"></div>
       <div class="gm-scoreboard" id="game-score"></div>
     </div>
+    <div id="game-diff"></div>
     <div id="game-kino">
       <div id="game-info"></div>
       <div id="game-play" style="display:none">
@@ -231,6 +237,14 @@
       <div id="game-board"></div>
     </div>
     <div id="game-wms" style="display:none"></div>
+    <div id="game-cover" style="display:none">
+      <div id="cover-info"></div>
+      <div id="cover-play" style="display:none">
+        <input type="text" id="cover-input" class="search-input" placeholder="Co to za tytuł? Wpisz z naszych ocen…" autocomplete="off">
+        <div id="cover-sug" class="game-sug"></div>
+      </div>
+      <div id="cover-stage"></div>
+    </div>
   </div>
 </div>
 

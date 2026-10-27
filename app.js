@@ -472,25 +472,31 @@ function renderSagi() {
     : "<div class='empty'>Brak filmów z przypisaną sagą. Kliknij „+ Nowa saga” żeby zacząć.</div>";
 }
 
-function sagaGroupHTML(name, films) {
-  const avgs = films.map(f => jointPct(f.id)).filter(v=>v!==null);
-  const avg  = avgs.length ? Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length) : null;
-  const lv   = avg !== null ? getLv(avg) : null;
+function sgCardHTML({ name, films, photo, manage }) {
+  const avgs = films.map(f => jointPct(f.id)).filter(v => v !== null);
+  const avg = avgs.length ? Math.round(avgs.reduce((x, y) => x + y, 0) / avgs.length) : null;
+  const lv = avg !== null ? getLv(avg) : null;
   const rated = films.filter(f => RATINGS[f.id]).length;
-  return `<div class="saga-group">
-    <div class="saga-head">
-      <span class="saga-name">${esc(name)}</span>
-      <span class="saga-count">${films.length} ${films.length===1?"film":"filmów"} · ${rated} ocenione</span>
-      ${lv ? `<span class="saga-avg">${pcSVG(lv.key,22)} <span style="color:${lv.color}">śr. ${avg}%</span></span>` : ""}
-      <button class="btn" style="margin-left:auto;font-size:10px;padding:4px 10px"
-        onclick="openSagaManager('${esc(name).replace(/'/g,"\\'")}')">Zarządzaj</button>
+  const best = films.map(f => ({ f, p: jointPct(f.id) })).filter(x => x.p !== null).sort((x, y) => y.p - x.p)[0];
+  const posters = films.filter(f => f.poster).slice(0, 4);
+  return `<details class="sg-card">
+    <summary>
+      <div class="sg-main">
+        <div class="sg-top">${photo ? `<img src="${esc(photo)}" class="sg-ph" alt="">` : ""}<span class="sg-name">${esc(name)}</span></div>
+        <div class="sg-num">${lv ? `<b style="color:${lv.color}">${avg}%</b><span>średnia</span>` : `<b style="color:var(--dim)">–</b><span>brak ocen</span>`}</div>
+        <div class="mo-chips"><span class="mo-chip">${films.length} ${films.length === 1 ? "film" : "filmów"}</span><span class="mo-chip">${rated} ocenione</span>${lv ? `<span class="mo-chip">${pcSVG(lv.key, 14)}</span>` : ""}</div>
+        ${best ? `<div class="mo-best">Najlepszy: <b>${esc(best.f.title)}</b> · ${best.p}%</div>` : ""}
+      </div>
+      <div class="mo-fan">${posters.map((f, k) => `<img style="--i:${k}" src="${esc(f.poster)}" alt="" loading="lazy">`).join("")}</div>
+      <span class="sg-chev">▾</span>
+    </summary>
+    <div class="sg-body">
+      ${manage ? `<button class="btn" style="font-size:11px;padding:5px 12px;margin-bottom:12px" onclick="openSagaManager('${esc(name).replace(/'/g, "\\'")}')">⚙ Zarządzaj sagą</button>` : ""}
+      <div class="movie-grid">${films.map(f => mCard(f, RATINGS[f.id] ? "saga" : "watchlist")).join("")}</div>
     </div>
-    <div class="saga-body"><div class="movie-grid">${films.map(f=>{
-      const mode = RATINGS[f.id] ? "saga" : "watchlist";
-      return mCard(f, mode);
-    }).join("")}</div></div>
-  </div>`;
+  </details>`;
 }
+function sagaGroupHTML(name, films) { return sgCardHTML({ name, films, manage: true }); }
 
 /* ─── Saga Manager ─── */
 let _sagaName = null;
@@ -624,20 +630,7 @@ function renderRezyserzy() {
   document.getElementById("rez-list").innerHTML = names.length
     ? names.map(name => {
         const { films, photo } = groups[name];
-        const avgs = films.map(f=>jointPct(f.id)).filter(v=>v!==null);
-        const avg  = avgs.length ? Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length) : null;
-        const lv   = avg!==null ? getLv(avg) : null;
-        return `<div class="saga-group">
-          <div class="saga-head">
-            ${photo
-              ? `<img src="${esc(photo)}" class="cast-photo" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0">`
-              : `<div style="width:44px;height:44px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎬</div>`}
-            <span class="saga-name">${esc(name)}</span>
-            <span class="saga-count">${films.length} ${films.length===1?"film":"filmów"}</span>
-            ${lv ? `<span class="saga-avg">${pcSVG(lv.key,22)} <span style="color:${lv.color}">śr. ${avg}%</span></span>` : ""}
-          </div>
-          <div class="saga-body"><div class="movie-grid">${films.map(f=>mCard(f, RATINGS[f.id]?"saga":"watchlist")).join("")}</div></div>
-        </div>`;
+        return sgCardHTML({ name, films, photo, manage: false });
       }).join("")
     : "<div class='empty'>Brak danych o reżyserach. Kliknij w oceniony film → Szczegóły żeby załadować obsadę.</div>";
 }
@@ -1414,7 +1407,7 @@ function applyView() {
 function renderCurrentView() {
   syncWatchlist();
   const v = currentView();
-  if (v === "home")    { renderHome(); INSIGHTS_API && INSIGHTS_API.renderHome(); }
+  if (v === "home")    { renderHome(); INSIGHTS_API && INSIGHTS_API.renderHome(); GAME_API && GAME_API.renderDuel(); }
   else if (v === "podsumowania")  INSIGHTS_API && INSIGHTS_API.render();
   else if (v === "gra")           GAME_API && GAME_API.render();
   else if (v === "oceny")   renderOceny();

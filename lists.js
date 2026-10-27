@@ -181,8 +181,13 @@ export function initLists(ctx) {
     const vis = items.map((it, i) => ({ it, i })).filter(x => !(ui.hideDone && isWatched(x.it)));
     const R = getRatings() || {};
     body.innerHTML = `
+      <div class="ls-banner">
+        <div class="ls-bn-txt"><div class="ls-bn-k">${ui.active === "default" ? "Lista stała" : "Lista własna"}</div>
+          <div class="ls-bn-t">${ui.active === "default" ? "📌 " : ""}${esc(l.name)}</div>
+          <div class="ls-bn-s"><b>${items.length}</b> tytułów · <b>${done}</b> obejrzanych · <b>${items.length - done}</b> czeka</div></div>
+        <div class="mo-fan ls-fan">${items.filter(x => x.poster).slice(0, 4).map((x, k) => `<img style="--i:${k}" src="${esc(x.poster)}" alt="" loading="lazy">`).join("")}</div>
+      </div>
       <div class="ls-head">
-        <div class="ls-title">${ui.active === "default" ? "📌 " : ""}${esc(l.name)}</div>
         <div class="ls-actions">
           ${ui.active === "default" ? "" : `<button class="sx-mini" onclick="LS.rename()">✎ Zmień nazwę</button>`}
           <button class="sx-mini" onclick="WT.openPlatforms()">📡 Moje platformy</button>
