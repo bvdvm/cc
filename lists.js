@@ -8,7 +8,7 @@ export function initLists(ctx) {
 
   let LISTS = {};                 // id → { name, items:[...], created }
   const pending = new Set();
-  const ui = { active: "default", hideDone: false, onlyMine: false };
+  const ui = { active: "default", open: false, hideDone: false, onlyMine: false };
   let loaded = false, migrating = false;
   const RW = "__rewatch";
   const el = id => document.getElementById(id);
@@ -81,12 +81,13 @@ export function initLists(ctx) {
   /* ───── Akcje ───── */
   const find = (lid, id) => (LISTS[lid]?.items || []).find(i => i.id === id);
   const L_ = {
-    pick(lid) { ui.active = lid; renderLista(); },
+    pick(lid) { ui.active = lid; ui.open = true; renderLista(); window.scrollTo({ top: 0 }); },
+    back() { ui.open = false; renderLista(); },
     async create() {
       const name = (prompt("Nazwa nowej listy:") || "").trim(); if (!name) return;
       const id = "l" + Date.now().toString(36);
       LISTS[id] = { name, items: [], created: Date.now() };
-      ui.active = id; await save(id);
+      ui.active = id; ui.open = true; await save(id);
     },
     async rename() {
       const l = LISTS[ui.active]; if (!l) return;
@@ -97,7 +98,7 @@ export function initLists(ctx) {
       const l = LISTS[ui.active]; if (!l) return;
       if (ui.active === "default") { if (!confirm("Wyczyścić listę „" + l.name + "”?")) return; l.items = []; await save("default"); return; }
       if (!confirm("Usunąć listę „" + l.name + "” razem z zawartością?")) return;
-      const id = ui.active; ui.active = "default"; delete LISTS[id];
+      const id = ui.active; ui.active = "default"; ui.open = false; delete LISTS[id];
       await deleteDoc(doc(CL, id)).catch(() => {}); changed();
     },
     async move(id, dir) {
@@ -167,10 +168,26 @@ export function initLists(ctx) {
     if (!LISTS.default) LISTS.default = { name: "Do obejrzenia", items: [], created: 0 };
     if (!ids.includes("default")) ids.unshift("default");
     if (!ids.length) { tabs.innerHTML = ""; body.innerHTML = `<div class="empty">Ładowanie list…</div>`; return; }
-    tabs.innerHTML = ids.map(id => {
-      const l = LISTS[id], done = l.items.filter(isWatched).length;
-      return `<button class="top-tab ${id === ui.active ? "active" : ""}" onclick="LS.pick('${id}')">📋 ${esc(l.name)} <small>${done}/${l.items.length}</small></button>`;
-    }).join("") + `<button class="top-tab ${ui.active === RW ? "active" : ""}" onclick="LS.pick('${RW}')">🔁 Rewatch <small>${rewatchItems().length}</small></button><button class="top-tab" onclick="LS.create()">+ Nowa lista</button>`;
+    tabs.innerHTML = "";
+    if (!ui.open) {
+      const card = (id, name, kicker, items, done, onclick) => {
+        const pct = items.length ? Math.round(done / items.length * 100) : 0;
+        const best = items.filter(x => x.poster).slice(0, 4);
+        return `<div class="sg-card ls-card" onclick="${onclick}"><div class="sg-sum">
+          <div class="sg-main"><div class="ls-bn-k">${kicker}</div><div class="sg-top"><span class="sg-name">${esc(name)}</span></div>
+            <div class="sg-num"><b style="color:var(--gold)">${pct}%</b><span>obejrzane</span></div>
+            <div class="mo-chips"><span class="mo-chip">${items.length} tytułów</span><span class="mo-chip">${done} obejrzanych</span><span class="mo-chip">${items.length - done} czeka</span></div>
+            <div class="ls-progress-track"><div class="ls-progress-fill" style="width:${pct}%"></div></div></div>
+          <div class="mo-fan">${best.map((x, k) => `<img style="--i:${k}" src="${esc(x.poster)}" alt="" loading="lazy">`).join("") || '<span style="font-size:42px">🎬</span>'}</div>
+          <span class="sg-chev" style="transform:rotate(-90deg)">▾</span></div></div>`;
+      };
+      const cnt = el("lista-count"); if (cnt) cnt.textContent = ids.length + " list";
+      body.innerHTML = `<div class="sg-grid">` + ids.map(id => { const l = LISTS[id]; return card(id, (id === "default" ? "📌 " : "") + l.name, id === "default" ? "Lista stała" : "Lista własna", l.items, l.items.filter(isWatched).length, `LS.pick('${id}')`); }).join("")
+        + (() => { const rw = rewatchItems(); return card(RW, "🔁 Rewatch", "Do ponownego obejrzenia", rw, 0, `LS.pick('${RW}')`); })()
+        + `<div class="sg-card ls-card ls-new" onclick="LS.create()"><div class="sg-sum" style="justify-content:center"><span class="sg-name" style="color:var(--muted)">＋ Nowa lista</span></div></div></div>`;
+      return;
+    }
+    tabs.innerHTML = `<button class="top-tab" onclick="LS.back()">← Wszystkie listy</button>`;
     if (ui.active === RW) { renderRewatch(body); ctx.afterRender && ctx.afterRender(body); return; }
 
     const l = LISTS[ui.active] || LISTS[ids[0]];
